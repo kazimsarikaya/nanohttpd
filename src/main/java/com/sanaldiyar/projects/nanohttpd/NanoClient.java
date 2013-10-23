@@ -19,7 +19,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,7 +103,14 @@ class NanoClient implements Runnable {
                         }
                         logger.debug("client (" + clientid + ") headers parsed");
                         if (bis.available() == 0) {
-                            return new Request(null, headers, pathURI, method);
+                            if (headers.containsKey("Content-Length")) {
+                                contentlength = Integer.parseInt(headers.get("Content-Length"));
+                                if(contentlength==0){
+                                    return new Request(null, headers, pathURI, method);
+                                }
+                            } else {
+                                return new Request(null, headers, pathURI, method);
+                            }
                         }
                         continue;
                     }
@@ -170,7 +176,7 @@ class NanoClient implements Runnable {
         int responselength = data.length;
         buffer.put(("HTTP/1.1 " + sc.toString() + "\r\n").getBytes("utf-8"));
         buffer.put(("Content-Length: " + responselength + "\r\n").getBytes("utf-8"));
-        buffer.put(("Content-Type: text/text; charset=utf-8\r\n").getBytes("utf-8"));
+        buffer.put(("Content-Type: text/plain; charset=utf-8\r\n").getBytes("utf-8"));
         buffer.put(("\r\n").getBytes("utf-8"));
         buffer.flip();
         clientSocketChannel.write(buffer);
