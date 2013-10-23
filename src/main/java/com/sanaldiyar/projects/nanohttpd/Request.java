@@ -17,11 +17,13 @@ public class Request {
     private final byte[] requestData;
     private final HashMap<String, String> headers;
     private final URI path;
+    private final String method;
 
-    Request(byte[] requestData, HashMap<String, String> headers, URI path) {
+    Request(byte[] requestData, HashMap<String, String> headers, URI path, String method) {
         this.requestData = requestData;
         this.headers = headers;
         this.path = path;
+        this.method = method;
     }
 
     public HashMap<String, String> getHeaders() {

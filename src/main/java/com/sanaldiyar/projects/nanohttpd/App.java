@@ -39,7 +39,7 @@ public class App {
             @Override
             public void handle(Request request, Response response) {
                 PrintWriter pw = new PrintWriter(response.getResponseStream());
-                response.setContentType("text/html");
+                response.getHeaders().put("Content-Type", "text/html; charset=utf-8");
                 response.setStatusCode(StatusCode.SC200);
                 pw.println("<html><head><title>Deneme Sayfası</title></head><body>Deneme 1 2 3</body><html>");
                 pw.close();
