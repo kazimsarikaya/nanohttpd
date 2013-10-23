@@ -37,9 +37,18 @@ public class App {
         logger.info("Sanal Diyar Nano HTTPD version 0.1");
         try {
             Properties config = new Properties();
+            FileInputStream configFile = null;
+            String configFileName = "";
             if (args.length != 1) {
-                config.load(new FileInputStream("config.properties"));
+                configFileName = "config.properties";
+            } else {
+                configFileName = args[0];
             }
+            configFile = new FileInputStream(configFileName);
+            config.load(configFile);
+            configFile = new FileInputStream(configFileName);
+            PropertyConfigurator.configure(configFile);
+            logger.debug("New logging configuration loaded");
 
             final Thread mainThread = Thread.currentThread();
             Runtime.getRuntime().addShutdownHook(new Thread("nanohttpd-shutdown") {
@@ -225,7 +234,7 @@ public class App {
     }
 
     private static void process(Request request, Response response) {
-        PrintWriter pw=new PrintWriter(response.getResponseStream());
+        PrintWriter pw = new PrintWriter(response.getResponseStream());
         response.setContentType("text/html");
         response.setStatusCode(StatusCode.SC200);
         pw.println("<html><head><title>Deneme Sayfası</title></head><body>Deneme 1 2 3</body><html>");
