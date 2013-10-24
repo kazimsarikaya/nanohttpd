@@ -55,7 +55,7 @@ public class Request {
         if (requestData != null) {
             if (requestData.length != 0) {
                 String ct = headers.get("Content-Type");
-                if (ct.toLowerCase().equals("application/x-www-form-urlencoded")) {
+                if (ct.toLowerCase().equals(ContentType.APPLICATIONXWWWFORMURLENCODED.toString())) {
                     try {
                         query = new String(requestData, lang);
                     } catch (UnsupportedEncodingException ex) {
@@ -65,7 +65,7 @@ public class Request {
                         }
                     }
                     parseURLEncodings(query, lang);
-                } else if (ct.startsWith("multipart/form-data;") || ct.startsWith("multipart/mixed;")) {
+                } else if (ct.startsWith(ContentType.MULTIPARTFORMDATA.toString()) || ct.startsWith(ContentType.MULTIPARTMIXED.toString())) {
                     List<FormDataPart> formdataparts = parseMultiPartBlocks(ct, requestData);
                     parseMultiParts(formdataparts, lang);
                 }
@@ -102,7 +102,7 @@ public class Request {
                     } else {
                         parseAsBinary(fdp, fname, fdinfop);
                     }
-                } else if (tct.startsWith("multipart/mixed")) {
+                } else if (tct.startsWith(ContentType.MULTIPARTMIXED.toString())) {
                     List<FormDataPart> mixedparts = parseMultiPartBlocks(tct, fdp.data);
                     parseMultiParts(mixedparts, lang);
                 } else {
@@ -110,7 +110,6 @@ public class Request {
                 }
             }
         }
-        logger.debug("asd");
     }
 
     private void parseAsString(FormDataPart fdp, String fname, String lang) {
