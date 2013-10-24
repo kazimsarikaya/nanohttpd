@@ -14,6 +14,7 @@ import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -33,12 +34,14 @@ class NanoClient implements Runnable {
     private final SocketChannel clientSocketChannel;
     private final NanoHandler handler;
     private final int executionTimeout;
+    private final int keepAliveTimeout;
     private final ExecutorService threadpool;
 
-    public NanoClient(SocketChannel clientSocketChannel, NanoHandler handler, int executionTimeout, ExecutorService threadpool) {
+    public NanoClient(SocketChannel clientSocketChannel, NanoHandler handler, int executionTimeout, int keepAliveTimeout, ExecutorService threadpool) {
         this.clientSocketChannel = clientSocketChannel;
         this.handler = handler;
         this.executionTimeout = executionTimeout;
+        this.keepAliveTimeout = keepAliveTimeout;
         this.threadpool = threadpool;
     }
 
@@ -189,17 +192,35 @@ class NanoClient implements Runnable {
         senddata.put(data);
         senddata.flip();
         if (clientSocketChannel.isConnected()) {
-            clientSocketChannel.write(senddata);
+            try {
+                clientSocketChannel.write(senddata);
+            } catch (IOException ex) {
+            }
         }
     }
 
     @Override
     public void run() {
-        int clientid = clientIndex.getAndIncrement();
+        final int clientid = clientIndex.getAndIncrement();
         while (true) {
             try {
                 logger.info("new client (" + clientid + ") at: " + clientSocketChannel.getRemoteAddress().toString());
-                final Request request = parseRequest(clientid);
+
+                Callable<Request> responseHandler = new Callable<Request>() {
+
+                    @Override
+                    public Request call() throws Exception {
+                        return parseRequest(clientid);
+                    }
+                };
+                Future<Request> requestSubmit = threadpool.submit(responseHandler);
+                Request tmpRequest;
+                try {
+                    tmpRequest = requestSubmit.get(keepAliveTimeout, TimeUnit.SECONDS);
+                } catch (TimeoutException ex) {
+                    tmpRequest = null;
+                }
+                final Request request = tmpRequest;
                 if (request == null) {
                     if (clientSocketChannel.isConnected()) {
                         try {

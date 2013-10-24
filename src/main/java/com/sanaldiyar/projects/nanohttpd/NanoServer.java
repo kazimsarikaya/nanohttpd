@@ -32,6 +32,7 @@ public class NanoServer {
     private Thread startThread;
     private ExecutorService threadpool;
     private int executionTimeout;
+    private int keepAliveTimeout;
 
     public void setHandler(NanoHandler handler) {
         this.handler = handler;
@@ -79,6 +80,7 @@ public class NanoServer {
                     PropertyConfigurator.configure(configFile);
                     logger.debug("New logging configuration loaded");
                     executionTimeout = Integer.parseInt(config.getProperty("execution.timeout"));
+                    keepAliveTimeout = Integer.parseInt(config.getProperty("connection.keepalivetimeout"));
 
                     int port = Integer.parseInt(config.getProperty("server.port"));
                     ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
@@ -106,7 +108,7 @@ public class NanoServer {
                         } catch (SocketTimeoutException ste) {
                             continue;
                         }
-                        Runnable clientRunnable=new NanoClient(clientSocketChannel, handler, executionTimeout, threadpool);
+                        Runnable clientRunnable=new NanoClient(clientSocketChannel, handler, executionTimeout, keepAliveTimeout, threadpool);
                         threadpool.execute(clientRunnable);
                     }
                     stopLock.release();
