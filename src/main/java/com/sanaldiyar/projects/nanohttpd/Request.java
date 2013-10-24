@@ -49,7 +49,9 @@ public class Request {
             lang = headers.get("Content-Language");
         }
         String query = path.getQuery();
-        parseURLEncodings(query, lang);
+        if (query != null) {
+            parseURLEncodings(query, lang);
+        }
         if (requestData != null) {
             if (requestData.length != 0) {
                 String ct = headers.get("Content-Type");
