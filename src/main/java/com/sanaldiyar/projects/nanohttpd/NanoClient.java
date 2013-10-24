@@ -105,7 +105,7 @@ class NanoClient implements Runnable {
                         if (bis.available() == 0) {
                             if (headers.containsKey("Content-Length")) {
                                 contentlength = Integer.parseInt(headers.get("Content-Length"));
-                                if(contentlength==0){
+                                if (contentlength == 0) {
                                     return new Request(null, headers, pathURI, method);
                                 }
                             } else {
@@ -138,6 +138,10 @@ class NanoClient implements Runnable {
         byte[] data = null;
         if (requestdatabuffer != null) {
             data = requestdatabuffer.array();
+        }
+        if (rsize == -1 && data == null && headers.isEmpty() && pathURI == null && method.trim().isEmpty()) {
+            sendError(StatusCode.SC400);
+            return null;
         }
         return new Request(data, headers, pathURI, method);
     }
@@ -196,6 +200,15 @@ class NanoClient implements Runnable {
             try {
                 logger.info("new client (" + clientid + ") at: " + clientSocketChannel.getRemoteAddress().toString());
                 final Request request = parseRequest(clientid);
+                if (request == null) {
+                    if (clientSocketChannel.isConnected()) {
+                        try {
+                            clientSocketChannel.close();
+                        } catch (Exception ex) {
+                        }
+                    }
+                    return;
+                }
                 logger.debug("client (" + clientid + ") request parsed for path " + request.getPath());
 
                 if (request.getHeaders().containsKey("Connection")) {
