@@ -5,6 +5,8 @@
  */
 package com.sanaldiyar.projects.nanohttpd;
 
+import java.nio.ByteBuffer;
+
 /**
  *
  * @author kazim
@@ -37,6 +39,26 @@ class Utils {
             if (cr == 13) {
                 line[linelen++] = (byte) cr;
                 lf = data[i++];
+                if (lf == 10) {
+                    line[linelen++] = (byte) lf;
+                    break;
+                }
+            }
+            line[linelen++] = (byte) cr;
+        }
+
+        return new String(line,0,linelen);
+    }
+
+    public static String readLine(ByteBuffer data) {
+        byte[] line = new byte[1024];
+        int linelen = 0;
+        while (data.position() < data.limit()) {
+            int cr, lf;
+            cr = data.get();
+            if (cr == 13) {
+                line[linelen++] = (byte) cr;
+                lf = data.get();
                 if (lf == 10) {
                     line[linelen++] = (byte) lf;
                     break;

@@ -7,9 +7,12 @@ package com.sanaldiyar.projects.nanohttpd;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,13 +39,17 @@ class NanoClient implements Runnable {
     private final int executionTimeout;
     private final int keepAliveTimeout;
     private final ExecutorService threadpool;
+    private final String tempPath;
+    private final int requestdatabuffer;
 
-    public NanoClient(SocketChannel clientSocketChannel, NanoHandler handler, int executionTimeout, int keepAliveTimeout, ExecutorService threadpool) {
+    public NanoClient(SocketChannel clientSocketChannel, NanoHandler handler, int executionTimeout, int keepAliveTimeout, ExecutorService threadpool, String tempPath, int requestdatabuffer) {
         this.clientSocketChannel = clientSocketChannel;
         this.handler = handler;
         this.executionTimeout = executionTimeout;
         this.keepAliveTimeout = keepAliveTimeout;
         this.threadpool = threadpool;
+        this.tempPath = tempPath;
+        this.requestdatabuffer = requestdatabuffer;
     }
 
     private Request parseRequest(int clientid) throws Exception {
@@ -58,6 +65,7 @@ class NanoClient implements Runnable {
         HashMap<String, String> headers = new HashMap<>();
         String method = "";
         URI pathURI = null;
+        File tempfile = null;
         while ((rsize = clientSocketChannel.read(buffer)) > 0) {
             buffer.flip();
             byte[] data = buffer.array();
@@ -66,7 +74,13 @@ class NanoClient implements Runnable {
                 if (isheadersparsed) {
                     if (!isrequestdatabufferstarted) {
                         contentlength = Integer.parseInt(headers.get("Content-Length"));
-                        requestdatabuffer = ByteBuffer.allocate(contentlength);
+                        if (contentlength <= this.requestdatabuffer) {
+                            requestdatabuffer = ByteBuffer.allocate(contentlength);
+                        } else {
+                            tempfile = File.createTempFile("nanohttpd-", ".temp", new File(this.tempPath));
+                            RandomAccessFile raf = new RandomAccessFile(tempfile, "rw");
+                            requestdatabuffer = raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, contentlength);
+                        }
                         requestdatabuffer.clear();
                         isrequestdatabufferstarted = true;
                     }
@@ -74,7 +88,7 @@ class NanoClient implements Runnable {
                     readedrequestdatalen += bis.read(tmpbd);
                     requestdatabuffer = requestdatabuffer.put(tmpbd);
                     if (contentlength == readedrequestdatalen) {
-                        return new Request(requestdatabuffer.array(), headers, pathURI, method);
+                        return new Request(requestdatabuffer, headers, pathURI, method, tempfile);
                     }
                 } else {
                     byte line[] = new byte[1024];
@@ -109,10 +123,10 @@ class NanoClient implements Runnable {
                             if (headers.containsKey("Content-Length")) {
                                 contentlength = Integer.parseInt(headers.get("Content-Length"));
                                 if (contentlength == 0) {
-                                    return new Request(null, headers, pathURI, method);
+                                    return new Request(null, headers, pathURI, method, null);
                                 }
                             } else {
-                                return new Request(null, headers, pathURI, method);
+                                return new Request(null, headers, pathURI, method, null);
                             }
                         }
                         continue;
@@ -146,7 +160,7 @@ class NanoClient implements Runnable {
             sendError(StatusCode.SC400);
             return null;
         }
-        return new Request(data, headers, pathURI, method);
+        return new Request(null, headers, pathURI, method, null);
     }
 
     private void parseResponse(Response response) throws Exception {
@@ -258,6 +272,7 @@ class NanoClient implements Runnable {
                     }
                     return;
                 }
+                request.close();
 
                 parseResponse(response);
 

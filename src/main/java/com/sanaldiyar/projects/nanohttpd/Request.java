@@ -5,12 +5,18 @@
  */
 package com.sanaldiyar.projects.nanohttpd;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import javax.swing.text.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,27 +24,69 @@ import org.slf4j.LoggerFactory;
  *
  * @author kazim
  */
-public class Request {
+public class Request implements Closeable {
 
     private final Logger logger = LoggerFactory.getLogger(Request.class);
+
+    @Override
+    public void close() throws IOException {
+        if (tempFile != null) {
+            tempFile.delete();
+        }
+    }
 
     class FormDataPart {
 
         HashMap<String, String> headers = new HashMap<>();
-        byte[] data;
+        int start;
+        int end;
     }
 
-    private final byte[] requestData;
+    class UploadFileInputStream extends InputStream {
+
+        int start;
+        int end;
+        int position;
+
+        public UploadFileInputStream(int start, int end) {
+            this.start = start;
+            this.end = end;
+            this.position = start;
+        }
+
+        @Override
+        public int read() throws IOException {
+            if (position > end) {
+                return -1;
+            }
+            return requestData.get(position++);
+        }
+
+        @Override
+        public synchronized void reset() throws IOException {
+            position = start;
+        }
+
+        @Override
+        public int available() throws IOException {
+            return this.end - this.position + 1;
+        }       
+
+    }
+
+    private final ByteBuffer requestData;
     private final HashMap<String, String> headers;
     private final URI path;
     private final String method;
     private final HashMap<String, Object> parameters = new HashMap<>();
+    private final File tempFile;
 
-    Request(byte[] requestData, HashMap<String, String> headers, URI path, String method) {
+    public Request(ByteBuffer requestData, HashMap<String, String> headers, URI path, String method, File tempFile) {
         this.requestData = requestData;
         this.headers = headers;
         this.path = path;
         this.method = method;
+        this.tempFile = tempFile;
         init();
     }
 
@@ -53,20 +101,20 @@ public class Request {
             parseURLEncodings(query, lang);
         }
         if (requestData != null) {
-            if (requestData.length != 0) {
+            if (requestData.limit() != 0) {
                 String ct = headers.get("Content-Type");
                 if (ct.toLowerCase().equals(ContentType.APPLICATIONXWWWFORMURLENCODED.toString())) {
                     try {
-                        query = new String(requestData, lang);
+                        query = new String(requestData.array(), lang);
                     } catch (UnsupportedEncodingException ex) {
                         try {
-                            query = new String(requestData, "utf-8");
+                            query = new String(requestData.array(), "utf-8");
                         } catch (UnsupportedEncodingException ex1) {
                         }
                     }
                     parseURLEncodings(query, lang);
                 } else if (ct.startsWith(ContentType.MULTIPARTFORMDATA.toString()) || ct.startsWith(ContentType.MULTIPARTMIXED.toString())) {
-                    List<FormDataPart> formdataparts = parseMultiPartBlocks(ct, requestData);
+                    List<FormDataPart> formdataparts = parseMultiPartBlocks(ct, 0, requestData.limit());
                     parseMultiParts(formdataparts, lang);
                 }
 
@@ -103,7 +151,7 @@ public class Request {
                         parseAsBinary(fdp, fname, fdinfop);
                     }
                 } else if (tct.startsWith(ContentType.MULTIPARTMIXED.toString())) {
-                    List<FormDataPart> mixedparts = parseMultiPartBlocks(tct, fdp.data);
+                    List<FormDataPart> mixedparts = parseMultiPartBlocks(tct, fdp.start, fdp.end);
                     parseMultiParts(mixedparts, lang);
                 } else {
                     parseAsBinary(fdp, fname, fdinfop);
@@ -114,10 +162,13 @@ public class Request {
 
     private void parseAsString(FormDataPart fdp, String fname, String lang) {
         String value;
+        byte[] data = new byte[fdp.end - fdp.start + 1];
         try {
-            value = new String(fdp.data, lang);
+            requestData.position(fdp.start);
+            requestData.get(data);
+            value = new String(data, lang);
         } catch (UnsupportedEncodingException ex) {
-            value = new String(fdp.data);
+            value = new String(data);
         }
         value = decodeString(value, lang);
         if (parameters.containsKey(fname)) {
@@ -133,7 +184,7 @@ public class Request {
     private void parseAsBinary(FormDataPart fdp, String fname, String[] fdinfop) {
         String filen = "unknown";
         if (parameters.containsKey(fname)) {
-            HashMap<String, byte[]> values = (HashMap<String, byte[]>) parameters.get(fname);
+            HashMap<String, InputStream> values = (HashMap<String, InputStream>) parameters.get(fname);
             if (fdinfop.length > 2) {
                 if (fdinfop[2].trim().startsWith("filename=")) {
                     filen = fdinfop[2].replace("filename=", "").replace("\"", "").trim();
@@ -143,64 +194,60 @@ public class Request {
             } else {
                 filen += values.size();
             }
-            values.put(filen, fdp.data);
+            values.put(filen, new UploadFileInputStream(fdp.start, fdp.end));
         } else {
-            HashMap<String, byte[]> values = new HashMap<>();
+            HashMap<String, InputStream> values = new HashMap<>();
             if (fdinfop.length > 2) {
                 if (fdinfop[2].trim().startsWith("filename=")) {
-                    filen = fdinfop[2].replace("filename=", "").trim();
+                    filen = fdinfop[2].replace("filename=", "").replace("\"", "").trim();
                 } else {
                     filen += values.size();
                 }
             } else {
                 filen += values.size();
             }
-            values.put(filen, fdp.data);
+            values.put(filen, new UploadFileInputStream(fdp.start, fdp.end));
             parameters.put(fname, values);
         }
     }
 
-    private List<FormDataPart> parseMultiPartBlocks(String ct, byte[] partData) {
+    private List<FormDataPart> parseMultiPartBlocks(String ct, int start, int end) {
         List<FormDataPart> result = new ArrayList<>();
         String boundary = ct.substring(ct.indexOf("boundary=")).trim();
-        boundary = "--" + boundary.replace("boundary=", "") + "\r\n";
+        boundary = "--" + boundary.replace("boundary=", "");
         byte[] bound = boundary.getBytes();
-        int start = 0;
-        int swift = bound.length;
+        requestData.position(start);
+        requestData.limit(end);
+        requestData.position(requestData.position() + bound.length);
         while (true) {
-            int idx1 = Utils.indexOfArray(partData, bound, start);
-            if (idx1 == -1) {
-                break;
-            }
-            int idx2 = Utils.indexOfArray(partData, bound, idx1 + swift);
-            if (idx2 == -1) {
-                boundary = boundary.trim() + "--\r\n";
-                bound = boundary.getBytes();
-                idx2 = Utils.indexOfArray(partData, bound, idx1 + swift);
-                if (idx2 == -1) {
-                    break;
-                }
-            }
-            start = idx2;
-            byte[] data = new byte[idx2 - idx1 - swift];
-            System.arraycopy(partData, idx1 + swift, data, 0, data.length);
-            String line;
-            int lstart = 0;
+            requestData.position(requestData.position() + 2);
             FormDataPart fdp = new FormDataPart();
             while (true) {
-                line = Utils.readLine(data, lstart);
-                if (line.trim().isEmpty()) {
-                    lstart += line.length();
+                String header = Utils.readLine(requestData);
+                if (header.trim().isEmpty()) {
                     break;
                 }
-                String[] parts = line.split(":", 2);
-                fdp.headers.put(parts[0].trim(), parts[1].trim());
-                lstart += line.length();
+                String[] headerparts = header.split(":", 2);
+                fdp.headers.put(headerparts[0], headerparts[1]);
             }
-            byte[] fdpdata = new byte[data.length - lstart - 2];
-            System.arraycopy(data, lstart, fdpdata, 0, fdpdata.length);
-            fdp.data = fdpdata;
+            fdp.start = requestData.position();
+            int j = 0;
+            for (; requestData.position() < requestData.limit();) {
+                if (requestData.get() == bound[j]) {
+                    j++;
+                } else {
+                    j = 0;
+                }
+                if (j == bound.length) {
+                    break;
+                }
+            }
+            fdp.end = requestData.position() - bound.length - 3;
             result.add(fdp);
+            int rem = requestData.limit() - requestData.position();
+            if (rem == 4) {
+                break;
+            }
         }
         return result;
     }
@@ -241,10 +288,6 @@ public class Request {
 
     public URI getPath() {
         return path;
-    }
-
-    public byte[] getRequestData() {
-        return requestData;
     }
 
     public HashMap<String, Object> getParameters() {
