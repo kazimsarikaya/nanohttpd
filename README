@@ -1,0 +1,12 @@
+A Simple Nano http server.
+
+Provides a Handler interface for request and response. You can get all request
+data as hash map of keys of form and values are list of strings, except uploaded
+files. Their values are hash map of uploaded file name and input stream. You
+should append all headers (cookies are also headers) inside response except 
+content length. Then fill the output stream of response. 
+
+There is a configuration file which provides logging and all features.
+
+Kazım SARIKAYA
+kazimsarikaya@sanaldiyar.com
