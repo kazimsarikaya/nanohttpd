@@ -8,11 +8,21 @@ package com.sanaldiyar.projects.nanohttpd;
 import java.nio.ByteBuffer;
 
 /**
+ * AN helper class for several operations
  *
  * @author kazim
  */
 class Utils {
 
+    /**
+     * Finds start indes of the seek array inside data array. Search starts from
+     * the parameter start
+     *
+     * @param data array that searched at
+     * @param seek array that will be searched
+     * @param start start index of seek array
+     * @return the start of first occurance of index of seek array
+     */
     public static int indexOfArray(byte[] data, byte[] seek, int start) {
         for (int i = start; i < data.length; i++) {
             boolean flag = true;
@@ -29,6 +39,13 @@ class Utils {
         return -1;
     }
 
+    /**
+     * Reads a line string from the data. Line can both end with LF and CRLF.
+     *
+     * @param data the array for extracting line
+     * @param start the begin index of line
+     * @return the line with CR/LF characters.
+     */
     public static String readLine(byte[] data, int start) {
         byte[] line = new byte[1024];
         int linelen = 0;
@@ -47,9 +64,16 @@ class Utils {
             line[linelen++] = (byte) cr;
         }
 
-        return new String(line,0,linelen);
+        return new String(line, 0, linelen);
     }
 
+    /**
+     * Extracts line from byte buffer. Line extracted from the current position
+     * of byte buffer. Line can both end with LF and CRLF.
+     *
+     * @param data the byte buffer
+     * @return the line with CR/LF characters
+     */
     public static String readLine(ByteBuffer data) {
         byte[] line = new byte[1024];
         int linelen = 0;
@@ -67,6 +91,6 @@ class Utils {
             line[linelen++] = (byte) cr;
         }
 
-        return new String(line,0,linelen);
+        return new String(line, 0, linelen);
     }
 }

@@ -16,7 +16,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import javax.swing.text.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +27,11 @@ public class Request implements Closeable {
 
     private final Logger logger = LoggerFactory.getLogger(Request.class);
 
+    /**
+     * Freeing temporary file with deleting it.
+     *
+     * @throws IOException error at temp file deletion
+     */
     @Override
     public void close() throws IOException {
         if (tempFile != null) {
@@ -35,6 +39,11 @@ public class Request implements Closeable {
         }
     }
 
+    /**
+     * Internal class for storing mutltipart form data parts. Each part have
+     * headers and start,end positions inside buffer. End position is included
+     * inside data
+     */
     class FormDataPart {
 
         HashMap<String, String> headers = new HashMap<>();
@@ -42,6 +51,9 @@ public class Request implements Closeable {
         int end;
     }
 
+    /**
+     * The internal input stream for uploaded filesF
+     */
     class UploadFileInputStream extends InputStream {
 
         int start;
@@ -70,7 +82,7 @@ public class Request implements Closeable {
         @Override
         public int available() throws IOException {
             return this.end - this.position + 1;
-        }       
+        }
 
     }
 
@@ -81,7 +93,16 @@ public class Request implements Closeable {
     private final HashMap<String, Object> parameters = new HashMap<>();
     private final File tempFile;
 
-    public Request(ByteBuffer requestData, HashMap<String, String> headers, URI path, String method, File tempFile) {
+    /**
+     * Internal constructor
+     *
+     * @param requestData sended content
+     * @param headers http request headers
+     * @param path the requested path
+     * @param method the request method
+     * @param tempFile the temp file for storing large request data.
+     */
+    Request(ByteBuffer requestData, HashMap<String, String> headers, URI path, String method, File tempFile) {
         this.requestData = requestData;
         this.headers = headers;
         this.path = path;
@@ -90,6 +111,9 @@ public class Request implements Closeable {
         init();
     }
 
+    /**
+     * parsing request data
+     */
     private void init() {
         parameters.clear();
         String lang = "utf-8";
@@ -122,6 +146,12 @@ public class Request implements Closeable {
         }
     }
 
+    /**
+     * Parses each part data
+     *
+     * @param multiparts the list of parts
+     * @param lang the encoding for strings. Default utf-8
+     */
     private void parseMultiParts(List<FormDataPart> multiparts, String lang) {
         for (FormDataPart fdp : multiparts) {
             String cd = fdp.headers.get("Content-Disposition");
@@ -160,6 +190,14 @@ public class Request implements Closeable {
         }
     }
 
+    /**
+     * Encodes data part as string and stores at parameters hashmap. A field can
+     * have multiple values hence the values are stored inside List.
+     *
+     * @param fdp part
+     * @param fname field name
+     * @param lang string encoding
+     */
     private void parseAsString(FormDataPart fdp, String fname, String lang) {
         String value;
         byte[] data = new byte[fdp.end - fdp.start + 1];
@@ -181,6 +219,13 @@ public class Request implements Closeable {
         }
     }
 
+    /**
+     * Creates an input stream for the posted file. Stores input steam inside
+     * hashmap of uploaded filename
+     * @param fdp part
+     * @param fname field name
+     * @param fdinfop file name information
+     */
     private void parseAsBinary(FormDataPart fdp, String fname, String[] fdinfop) {
         String filen = "unknown";
         if (parameters.containsKey(fname)) {
@@ -211,6 +256,15 @@ public class Request implements Closeable {
         }
     }
 
+    /**
+     * parser for multipart form data blocks. Divide blocks using boundary and
+     * create FormDataPart with headers and data.
+     *
+     * @param ct content type
+     * @param start start of request data
+     * @param end end of request data
+     * @return list of parts
+     */
     private List<FormDataPart> parseMultiPartBlocks(String ct, int start, int end) {
         List<FormDataPart> result = new ArrayList<>();
         String boundary = ct.substring(ct.indexOf("boundary=")).trim();
@@ -252,6 +306,12 @@ public class Request implements Closeable {
         return result;
     }
 
+    /**
+     * Query string parser
+     *
+     * @param data query string
+     * @param lang string encoding
+     */
     private void parseURLEncodings(String data, String lang) {
         String[] paramkeyvalue = data.split("&");
         for (String keyvalue : paramkeyvalue) {
@@ -269,6 +329,13 @@ public class Request implements Closeable {
         }
     }
 
+    /**
+     * Normalize special characters
+     *
+     * @param value
+     * @param lang string encoding
+     * @return string
+     */
     private String decodeString(String value, String lang) {
         String key = "";
         try {
@@ -282,16 +349,42 @@ public class Request implements Closeable {
         return key;
     }
 
+    /**
+     * Returns HTTP headers
+     *
+     * @return HTTP headers
+     */
     public HashMap<String, String> getHeaders() {
         return headers;
     }
 
+    /**
+     * Returns requested path
+     *
+     * @return requested path
+     */
     public URI getPath() {
         return path;
     }
 
+    /**
+     * Returns request paramaters. KeySet is consist of field names. Each field
+     * may have more then a value. Except uploaded files, other fields's values
+     * are inside list of string. Upload files are inside HashMap whose keys are
+     * uploaded file names.
+     * @return request parameters
+     */
     public HashMap<String, Object> getParameters() {
         return parameters;
+    }
+
+    /**
+     * Returns request method
+     *
+     * @return request method
+     */
+    public String getMethod() {
+        return method;
     }
 
 }

@@ -6,6 +6,7 @@
 package com.sanaldiyar.projects.nanohttpd;
 
 /**
+ * HTTP/1.1 Status Codes
  *
  * @author kazim
  */

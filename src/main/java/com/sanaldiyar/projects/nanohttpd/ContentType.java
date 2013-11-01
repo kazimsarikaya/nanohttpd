@@ -6,6 +6,7 @@
 package com.sanaldiyar.projects.nanohttpd;
 
 /**
+ * MIME Content Types
  *
  * @author kazim
  */
@@ -63,8 +64,8 @@ public enum ContentType {
     }
 
     public static ContentType fromString(String value) {
-        for(ContentType ct : values()){
-            if(ct.toString().equals(value)){
+        for (ContentType ct : values()) {
+            if (ct.toString().equals(value)) {
                 return ct;
             }
         }

@@ -27,6 +27,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Internal class for each client. The clinet is executed for every connection.
+ * If keep-alive requested client continue performing operations, otherwise
+ * client closed. However the client also have lifetime timeout whenever
+ * keep-alive is set
  *
  * @author kazim
  */
@@ -42,7 +46,19 @@ class NanoClient implements Runnable {
     private final String tempPath;
     private final int requestdatabuffer;
 
-    public NanoClient(SocketChannel clientSocketChannel, NanoHandler handler, int executionTimeout, int keepAliveTimeout, ExecutorService threadpool, String tempPath, int requestdatabuffer) {
+    /**
+     * Internal Constructor.
+     *
+     * @param clientSocketChannel client socket
+     * @param handler nano handler
+     * @param executionTimeout the handler execution timeout
+     * @param keepAliveTimeout the client closing timeout
+     * @param threadpool the thread pool for creating threads
+     * @param tempPath temporary folder for large request datas
+     * @param requestdatabuffer the threshold for request data length to storing
+     * it inside temporary file
+     */
+    NanoClient(SocketChannel clientSocketChannel, NanoHandler handler, int executionTimeout, int keepAliveTimeout, ExecutorService threadpool, String tempPath, int requestdatabuffer) {
         this.clientSocketChannel = clientSocketChannel;
         this.handler = handler;
         this.executionTimeout = executionTimeout;
@@ -52,6 +68,16 @@ class NanoClient implements Runnable {
         this.requestdatabuffer = requestdatabuffer;
     }
 
+    /**
+     * The request parser method. It parses request and a construct a Request
+     * object that will be used at NanoHandler.
+     *
+     * @param clientid the id of client for logging
+     * @return the request data that sended by client
+     * @throws Exception several exceptions if there is error at request
+     * @see NanoHandler
+     * @see Request
+     */
     private Request parseRequest(int clientid) throws Exception {
         String path = "";
         boolean isheadersparsed = false;
@@ -163,6 +189,13 @@ class NanoClient implements Runnable {
         return new Request(null, headers, pathURI, method, null);
     }
 
+    /**
+     * Sends response to the client. Appends headers. Calculate content length
+     * and sets at header.
+     *
+     * @param response The response object ot send clients
+     * @throws Exception if there is error at client socket
+     */
     private void parseResponse(Response response) throws Exception {
         ByteBuffer buffer = ByteBuffer.allocate(8192);
         buffer.clear();
@@ -191,6 +224,12 @@ class NanoClient implements Runnable {
         }
     }
 
+    /**
+     * Sends HTTP errors to clients
+     *
+     * @param sc Error status code
+     * @throws Exception Exception if there is error at client socket
+     */
     private void sendError(StatusCode sc) throws Exception {
         ByteBuffer buffer = ByteBuffer.allocate(8192);
         byte[] data = sc.toString().getBytes("utf-8");
@@ -213,6 +252,9 @@ class NanoClient implements Runnable {
         }
     }
 
+    /**
+     * The thread method. Parse request, use NanoHandler and sends reponse.
+     */
     @Override
     public void run() {
         final int clientid = clientIndex.getAndIncrement();

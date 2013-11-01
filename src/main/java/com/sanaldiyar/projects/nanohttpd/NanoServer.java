@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Hello world!
+ * The Nano HTTPD Server.
  *
  */
 public class NanoServer {
@@ -36,22 +36,46 @@ public class NanoServer {
     private String tempPath;
     private int requestdatabuffer;
 
+    /**
+     * Sets the NanoHandler instance.
+     *
+     * @param handler The nano handler
+     * @see NanoHandler
+     */
     public void setHandler(NanoHandler handler) {
         this.handler = handler;
     }
 
+    /**
+     * Returns the NanoHandler instance
+     *
+     * @return The nano handler
+     */
     public NanoHandler getHandler() {
         return handler;
     }
 
+    /**
+     * Returns configuration file path.
+     *
+     * @return configuration file path
+     */
     public String getConfigurationFile() {
         return configurationFile;
     }
 
+    /**
+     * Sets configuration file path.
+     *
+     * @param configurationFile configuration file path
+     */
     public void setConfigurationFile(String configurationFile) {
         this.configurationFile = configurationFile;
     }
 
+    /**
+     * Stops NanoServer.
+     */
     public void stop() {
         if (!serve) {
             return;
@@ -59,13 +83,16 @@ public class NanoServer {
         try {
             serve = false;
             stopLock.acquire();
-            threadpool.awaitTermination(10, TimeUnit.SECONDS);
+            threadpool.awaitTermination(90, TimeUnit.SECONDS);
             threadpool.shutdown();
         } catch (InterruptedException ex) {
             logger.debug("Error at stopping", ex);
         }
     }
 
+    /**
+     * Starts NanoServer.
+     */
     public void start() {
         startThread = new Thread("nanohttpd-starter") {
 

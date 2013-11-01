@@ -18,28 +18,61 @@ public class Response {
     private StatusCode statusCode = StatusCode.SC404;
     private final HashMap<String, String> headers = new HashMap<>();
 
+    Response() {
+    }
+
+    /**
+     * Returns response headers
+     *
+     * @return response headers
+     */
     public HashMap<String, String> getHeaders() {
         return headers;
     }
 
+    /**
+     * Sets HTTP/1.1 Response codes
+     *
+     * @param statusCode response code
+     */
     public void setStatusCode(StatusCode statusCode) {
         this.statusCode = statusCode;
     }
 
+    /**
+     * Returns HTTP/1.1 response code
+     *
+     * @return response code
+     */
     public StatusCode getStatusCode() {
         return statusCode;
     }
 
+    /**
+     * Returns responsedata as byte array
+     *
+     * @return response bytes
+     */
     byte[] getResponseData() {
         return responseStream.toByteArray();
     }
 
+    /**
+     * Returns an output stream for response data
+     *
+     * @return outputstream
+     */
     public ByteArrayOutputStream getResponseStream() {
         return responseStream;
     }
 
+    /**
+     * guesses and sets the content type form extension of requested path.
+     *
+     * @param extension requested file extension
+     */
     public void guessAndAddContentType(String extension) {
-        String ct = "application/octet-stream";
+        String ct;
         switch (extension) {
             case "css":
                 ct = ContentType.TEXTCSS.toString();
@@ -77,31 +110,31 @@ public class Response {
                 ct = ContentType.APPLICATIONBZIP.toString();
                 break;
             case "m4a":
-                ct=ContentType.AUDIOMP4.toString();
+                ct = ContentType.AUDIOMP4.toString();
                 break;
             case "mp3":
-                ct=ContentType.AUDIOMPEG.toString();
+                ct = ContentType.AUDIOMPEG.toString();
                 break;
             case "jpg":
             case "jpeg":
-                ct=ContentType.IMAGEJPEG.toString();
+                ct = ContentType.IMAGEJPEG.toString();
                 break;
             case "gif":
-                ct=ContentType.IMAGEGIF.toString();
+                ct = ContentType.IMAGEGIF.toString();
                 break;
             case "png":
-                ct=ContentType.IMAGEPNG.toString();
+                ct = ContentType.IMAGEPNG.toString();
                 break;
             case "mp4":
-                ct=ContentType.VIDEOMP4.toString();
+                ct = ContentType.VIDEOMP4.toString();
                 break;
             case "avi":
             case "mpeg":
-                ct=ContentType.VIDEOMPEG.toString();
+                ct = ContentType.VIDEOMPEG.toString();
                 break;
             default:
-                ct=ContentType.APPLICATIONOCTETSTREAM.toString();
-                break;                                
+                ct = ContentType.APPLICATIONOCTETSTREAM.toString();
+                break;
         }
         headers.put("Content-Type", ct);
     }
