@@ -199,13 +199,11 @@ class NanoClient implements Runnable {
     private void parseResponse(Response response) throws Exception {
         ByteBuffer buffer = ByteBuffer.allocate(8192);
         buffer.clear();
-        int responselength = response.getResponseData().length;
-        byte[] data;
+        int responselength = response.getContentLength();
+        byte[] data = null;
         if (responselength == 0) {
             data = response.getStatusCode().toString().getBytes("utf-8");
             responselength = data.length;
-        } else {
-            data = response.getResponseData();
         }
         buffer.put(("HTTP/1.1 " + response.getStatusCode().toString() + "\r\n").getBytes("utf-8"));
         buffer.put(("Content-Length: " + responselength + "\r\n").getBytes("utf-8"));
@@ -216,12 +214,19 @@ class NanoClient implements Runnable {
         buffer.flip();
         clientSocketChannel.write(buffer);
 
-        ByteBuffer senddata = ByteBuffer.allocate(data.length);
-        senddata.put(data);
-        senddata.flip();
-        if (clientSocketChannel.isConnected()) {
-            clientSocketChannel.write(senddata);
+        if (data != null) {
+            ByteBuffer senddata = ByteBuffer.allocate(data.length);
+            senddata.put(data);
+            senddata.flip();
+            if (clientSocketChannel.isConnected()) {
+                clientSocketChannel.write(senddata);
+            }
+        } else {
+            if (clientSocketChannel.isConnected()) {
+                response.sendToSocketChannel(clientSocketChannel);
+            }
         }
+
     }
 
     /**
@@ -296,7 +301,7 @@ class NanoClient implements Runnable {
                     clientSocketChannel.shutdownInput();
                 }
 
-                final Response response = new Response();
+                final Response response = new Response(File.createTempFile("nanohttpd-", ".temp", new File(this.tempPath)));
                 Runnable handlerRunner = new Runnable() {
 
                     @Override
@@ -317,6 +322,8 @@ class NanoClient implements Runnable {
                 request.close();
 
                 parseResponse(response);
+
+                response.close();
 
                 if (request.getHeaders().containsKey("Connection")) {
                     if (!request.getHeaders().get("Connection").equals("keep-alive")) {

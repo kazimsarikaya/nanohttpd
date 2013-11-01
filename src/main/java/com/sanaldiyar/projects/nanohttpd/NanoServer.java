@@ -14,6 +14,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,5 +152,13 @@ public class NanoServer {
 
         };
         startThread.start();
+    }
+    
+    public void join(){
+        try {
+            startThread.join();
+        } catch (InterruptedException ex) {
+            logger.error("Can not join server thread", ex);
+        }
     }
 }

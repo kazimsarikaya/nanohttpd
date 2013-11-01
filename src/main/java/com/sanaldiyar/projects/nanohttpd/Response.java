@@ -6,19 +6,55 @@
 package com.sanaldiyar.projects.nanohttpd;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.Channel;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 
 /**
  *
  * @author kazim
  */
-public class Response {
+public class Response implements Closeable {
 
-    private final ByteArrayOutputStream responseStream = new ByteArrayOutputStream(8192);
+    class ResponseOutputStream extends OutputStream {
+
+        int position = 8192;
+        MappedByteBuffer mbb;
+
+        @Override
+        public void write(int b) throws IOException {
+            if (position == 8192) {
+                mbb = channel.map(FileChannel.MapMode.READ_WRITE, contentLength, 8192);
+                position = 0;
+            }
+            mbb.put((byte) (b & 0xFF));
+            contentLength++;
+            position++;
+        }
+
+    }
+
+    private final OutputStream responseStream;
     private StatusCode statusCode = StatusCode.SC404;
     private final HashMap<String, String> headers = new HashMap<>();
+    private File tempfile;
+    private FileChannel channel;
+    private int contentLength = 0;
 
-    Response() {
+    Response(File tempfile) throws Exception {
+        this.tempfile = tempfile;
+        RandomAccessFile raf = new RandomAccessFile(tempfile, "rw");
+        channel = raf.getChannel();
+        responseStream = new ResponseOutputStream();
     }
 
     /**
@@ -49,12 +85,28 @@ public class Response {
     }
 
     /**
-     * Returns responsedata as byte array
+     * Returns content length
      *
-     * @return response bytes
+     * @return content length
      */
-    byte[] getResponseData() {
-        return responseStream.toByteArray();
+    int getContentLength() {
+        return contentLength - 1;
+    }
+
+    /**
+     * Send data to the client.
+     *
+     * @param socketChannel the remote (client) end
+     * @throws IOException error at sending data
+     */
+    void sendToSocketChannel(SocketChannel socketChannel) throws IOException {
+        MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_ONLY, 0, contentLength - 1);
+        while (map.position() < map.limit()) {
+            int len = map.remaining() > 8192 ? 8192 : map.remaining();
+            byte[] data = new byte[len];
+            map.get(data);
+            socketChannel.write(ByteBuffer.wrap(data));
+        }
     }
 
     /**
@@ -62,7 +114,7 @@ public class Response {
      *
      * @return outputstream
      */
-    public ByteArrayOutputStream getResponseStream() {
+    public OutputStream getResponseStream() {
         return responseStream;
     }
 
@@ -137,6 +189,11 @@ public class Response {
                 break;
         }
         headers.put("Content-Type", ct);
+    }
+
+    @Override
+    public void close() throws IOException {
+        tempfile.delete();
     }
 
 }
