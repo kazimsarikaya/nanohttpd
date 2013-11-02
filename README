@@ -8,5 +8,19 @@ content length. Then fill the output stream of response.
 
 There is a configuration file which provides logging and all features.
 
+The system can be used inside projects or standalone with osgi container. The
+bundle requires log4j slf4j and slf4j-log4j bridge bundles.
+
+While using inside osgi container, it listens service registrations with class
+name NanoHandler, and with VirtualHost property. 
+
+The maven repository is:
+
+<repository>
+        <id>sanaldiyar-snapshot</id>
+        <name>Sanal Diyar Snapshot</name>
+        <url>http://maven2.sanaldiyar.com/snap-repo/</url>
+</repository>
+
 Kazım SARIKAYA
 kazimsarikaya@sanaldiyar.com
