@@ -1,5 +1,6 @@
 package com.sanaldiyar.projects.nanohttpd;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -82,10 +83,12 @@ public class NanoServer {
             return;
         }
         try {
+            logger.info("Try to shutdown nanohttpd server");
             serve = false;
             stopLock.acquire();
-            threadpool.awaitTermination(90, TimeUnit.SECONDS);
+            threadpool.awaitTermination(15, TimeUnit.SECONDS);
             threadpool.shutdown();
+            logger.info("nanohttpd server shutdown is completed");
         } catch (InterruptedException ex) {
             logger.debug("Error at stopping", ex);
         }
@@ -113,6 +116,10 @@ public class NanoServer {
                     keepAliveTimeout = Integer.parseInt(config.getProperty("connection.keepalivetimeout"));
 
                     tempPath = config.getProperty("server.temppath");
+                    File tempPathFile = new File(tempPath);
+                    if (!tempPathFile.exists()) {
+                        tempPathFile.mkdir();
+                    }
                     requestdatabuffer = Integer.parseInt(config.getProperty("server.requestdatabuffer"));
 
                     int port = Integer.parseInt(config.getProperty("server.port"));
@@ -153,8 +160,8 @@ public class NanoServer {
         };
         startThread.start();
     }
-    
-    public void join(){
+
+    public void join() {
         try {
             startThread.join();
         } catch (InterruptedException ex) {
