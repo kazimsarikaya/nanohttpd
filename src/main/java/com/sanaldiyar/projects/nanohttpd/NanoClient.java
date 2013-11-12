@@ -201,7 +201,7 @@ class NanoClient implements Runnable {
         buffer.clear();
         int responselength = response.getContentLength();
         byte[] data = null;
-        if (responselength == 0) {
+        if (responselength <= 0) {
             data = response.getStatusCode().toString().getBytes("utf-8");
             responselength = data.length;
         }
