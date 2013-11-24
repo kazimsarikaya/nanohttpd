@@ -17,7 +17,9 @@ import java.nio.channels.Channel;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  *
@@ -46,6 +48,7 @@ public class Response implements Closeable {
     private final OutputStream responseStream;
     private StatusCode statusCode = StatusCode.SC404;
     private final HashMap<String, String> headers = new HashMap<>();
+    private final List<Cookie> cookies = new ArrayList<>();
     private File tempfile;
     private FileChannel channel;
     private int contentLength = 0;
@@ -64,6 +67,15 @@ public class Response implements Closeable {
      */
     public HashMap<String, String> getHeaders() {
         return headers;
+    }
+
+    /**
+     * Return HTTP Cookies.
+     * You can set response cookies adding to this list.
+     * @return cookies
+     */
+    public List<Cookie> getCookies() {
+        return cookies;
     }
 
     /**

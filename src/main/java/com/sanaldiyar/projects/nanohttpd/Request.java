@@ -92,6 +92,7 @@ public class Request implements Closeable {
     private final String method;
     private final HashMap<String, Object> parameters = new HashMap<>();
     private final File tempFile;
+    private final List<Cookie> cookies;
 
     /**
      * Internal constructor
@@ -102,12 +103,13 @@ public class Request implements Closeable {
      * @param method the request method
      * @param tempFile the temp file for storing large request data.
      */
-    Request(ByteBuffer requestData, HashMap<String, String> headers, URI path, String method, File tempFile) {
+    Request(ByteBuffer requestData, HashMap<String, String> headers, URI path, String method, File tempFile, List<Cookie> cookies) {
         this.requestData = requestData;
         this.headers = headers;
         this.path = path;
         this.method = method;
         this.tempFile = tempFile;
+        this.cookies = cookies;
         init();
     }
 
@@ -222,6 +224,7 @@ public class Request implements Closeable {
     /**
      * Creates an input stream for the posted file. Stores input steam inside
      * hashmap of uploaded filename
+     *
      * @param fdp part
      * @param fname field name
      * @param fdinfop file name information
@@ -372,6 +375,7 @@ public class Request implements Closeable {
      * may have more then a value. Except uploaded files, other fields's values
      * are inside list of string. Upload files are inside HashMap whose keys are
      * uploaded file names.
+     *
      * @return request parameters
      */
     public HashMap<String, Object> getParameters() {
@@ -385,6 +389,15 @@ public class Request implements Closeable {
      */
     public String getMethod() {
         return method;
+    }
+
+    /**
+     * Returns cookies.
+     * Returns the cookies send by client.
+     * @return cookies
+     */
+    public List<Cookie> getCookies() {
+        return cookies;
     }
 
 }

@@ -14,7 +14,9 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
@@ -85,8 +87,9 @@ class NanoClient implements Runnable {
         int rsize;
         String requestline = null;
         ByteBuffer buffer = ByteBuffer.allocate(8192);
-        ByteBuffer requestdatabuffer = null;
+        ByteBuffer reqdbuf = null;
         HashMap<String, String> headers = new HashMap<>();
+        List<Cookie> cookies = new ArrayList<>();
         String method = "";
         URI pathURI = null;
         File tempfile = null;
@@ -99,20 +102,20 @@ class NanoClient implements Runnable {
                     if (!isrequestdatabufferstarted) {
                         contentlength = Integer.parseInt(headers.get("Content-Length"));
                         if (contentlength <= this.requestdatabuffer) {
-                            requestdatabuffer = ByteBuffer.allocate(contentlength);
+                            reqdbuf = ByteBuffer.allocate(contentlength);
                         } else {
                             tempfile = File.createTempFile("nanohttpd-", ".temp");
                             RandomAccessFile raf = new RandomAccessFile(tempfile, "rw");
-                            requestdatabuffer = raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, contentlength);
+                            reqdbuf = raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, contentlength);
                         }
-                        requestdatabuffer.clear();
+                        reqdbuf.clear();
                         isrequestdatabufferstarted = true;
                     }
                     byte[] tmpbd = new byte[bis.available()];
                     readedrequestdatalen += bis.read(tmpbd);
-                    requestdatabuffer = requestdatabuffer.put(tmpbd);
+                    reqdbuf = reqdbuf.put(tmpbd);
                     if (contentlength == readedrequestdatalen) {
-                        return new Request(requestdatabuffer, headers, pathURI, method, tempfile);
+                        return new Request(reqdbuf, headers, pathURI, method, tempfile, cookies);
                     }
                 } else {
                     byte line[] = new byte[1024];
@@ -147,10 +150,10 @@ class NanoClient implements Runnable {
                             if (headers.containsKey("Content-Length")) {
                                 contentlength = Integer.parseInt(headers.get("Content-Length"));
                                 if (contentlength == 0) {
-                                    return new Request(null, headers, pathURI, method, null);
+                                    return new Request(null, headers, pathURI, method, null, cookies);
                                 }
                             } else {
-                                return new Request(null, headers, pathURI, method, null);
+                                return new Request(null, headers, pathURI, method, null, cookies);
                             }
                         }
                         continue;
@@ -171,20 +174,24 @@ class NanoClient implements Runnable {
                         continue;
                     }
                     String[] headerparts = headerline.split(":", 2);
-                    headers.put(headerparts[0].trim(), headerparts[1].trim());
+                    if (headerparts[0].trim().toLowerCase().equals("cookie")) {
+                        cookies.add(Cookie.parseCookie(headerparts[1].trim()));
+                    } else {
+                        headers.put(headerparts[0].trim(), headerparts[1].trim());
+                    }
                 }
             }
             buffer.clear();
         }
         byte[] data = null;
-        if (requestdatabuffer != null) {
-            data = requestdatabuffer.array();
+        if (reqdbuf != null) {
+            data = reqdbuf.array();
         }
         if (rsize == -1 && data == null && headers.isEmpty() && pathURI == null && method.trim().isEmpty()) {
             sendError(StatusCode.SC400);
             return null;
         }
-        return new Request(null, headers, pathURI, method, null);
+        return new Request(null, headers, pathURI, method, null, cookies);
     }
 
     /**
@@ -207,6 +214,9 @@ class NanoClient implements Runnable {
         buffer.put(("Content-Length: " + responselength + "\r\n").getBytes("utf-8"));
         for (Map.Entry<String, String> respheader : response.getHeaders().entrySet()) {
             buffer.put((respheader.getKey() + ": " + respheader.getValue() + "\r\n").getBytes("utf-8"));
+        }
+        for (Cookie cookie : response.getCookies()) {
+            buffer.put(("Set-Cookie: " + cookie.toString()).getBytes("utf-8"));
         }
         buffer.put(("\r\n").getBytes("utf-8"));
         buffer.flip();
