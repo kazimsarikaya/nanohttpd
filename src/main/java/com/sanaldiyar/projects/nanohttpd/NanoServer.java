@@ -120,6 +120,7 @@ public class NanoServer {
                     if (!tempPathFile.exists()) {
                         tempPathFile.mkdir();
                     }
+                    System.setProperty("java.io.tmpdir", tempPath);
                     requestdatabuffer = Integer.parseInt(config.getProperty("server.requestdatabuffer"));
 
                     int port = Integer.parseInt(config.getProperty("server.port"));
@@ -148,7 +149,7 @@ public class NanoServer {
                         } catch (SocketTimeoutException ste) {
                             continue;
                         }
-                        Runnable clientRunnable = new NanoClient(clientSocketChannel, handler, executionTimeout, keepAliveTimeout, threadpool, tempPath, requestdatabuffer);
+                        Runnable clientRunnable = new NanoClient(clientSocketChannel, handler, executionTimeout, keepAliveTimeout, threadpool, requestdatabuffer);
                         threadpool.execute(clientRunnable);
                     }
                     stopLock.release();

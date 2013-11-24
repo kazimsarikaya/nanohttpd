@@ -43,7 +43,6 @@ class NanoClient implements Runnable {
     private final int executionTimeout;
     private final int keepAliveTimeout;
     private final ExecutorService threadpool;
-    private final String tempPath;
     private final int requestdatabuffer;
 
     /**
@@ -58,13 +57,12 @@ class NanoClient implements Runnable {
      * @param requestdatabuffer the threshold for request data length to storing
      * it inside temporary file
      */
-    NanoClient(SocketChannel clientSocketChannel, NanoHandler handler, int executionTimeout, int keepAliveTimeout, ExecutorService threadpool, String tempPath, int requestdatabuffer) {
+    NanoClient(SocketChannel clientSocketChannel, NanoHandler handler, int executionTimeout, int keepAliveTimeout, ExecutorService threadpool, int requestdatabuffer) {
         this.clientSocketChannel = clientSocketChannel;
         this.handler = handler;
         this.executionTimeout = executionTimeout;
         this.keepAliveTimeout = keepAliveTimeout;
         this.threadpool = threadpool;
-        this.tempPath = tempPath;
         this.requestdatabuffer = requestdatabuffer;
     }
 
@@ -103,7 +101,7 @@ class NanoClient implements Runnable {
                         if (contentlength <= this.requestdatabuffer) {
                             requestdatabuffer = ByteBuffer.allocate(contentlength);
                         } else {
-                            tempfile = File.createTempFile("nanohttpd-", ".temp", new File(this.tempPath));
+                            tempfile = File.createTempFile("nanohttpd-", ".temp");
                             RandomAccessFile raf = new RandomAccessFile(tempfile, "rw");
                             requestdatabuffer = raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, contentlength);
                         }
@@ -301,7 +299,7 @@ class NanoClient implements Runnable {
                     clientSocketChannel.shutdownInput();
                 }
 
-                final Response response = new Response(File.createTempFile("nanohttpd-", ".temp", new File(this.tempPath)));
+                final Response response = new Response(File.createTempFile("nanohttpd-", ".temp"));
                 Runnable handlerRunner = new Runnable() {
 
                     @Override
