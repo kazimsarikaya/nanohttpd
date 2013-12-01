@@ -1,3 +1,10 @@
+/*
+Nano HTTPD HTTP Server
+Copryright © 2013 Kazım SARIKAYA
+
+This program is licensed under the terms of Sanal Diyar Software License. Please
+read the license file or visit http://license.sanaldiyar.com
+*/
 package com.sanaldiyar.projects.nanohttpd;
 
 import java.io.File;

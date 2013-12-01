@@ -1,8 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+Nano HTTPD HTTP Server
+Copryright © 2013 Kazım SARIKAYA
+
+This program is licensed under the terms of Sanal Diyar Software License. Please
+read the license file or visit http://license.sanaldiyar.com
+*/
 package com.sanaldiyar.projects.nanohttpd;
 
 import java.io.Closeable;
