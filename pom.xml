@@ -28,7 +28,7 @@
                 <configuration>
                     <instructions>
                         <Export-Package>com.sanaldiyar.projects.nanohttpd.nanohttpd</Export-Package>
-                        <Bundle-Activator>com.sanaldiyar.projects.nanohttpd..nanohttpd.Activator</Bundle-Activator>
+                        <Bundle-Activator>com.sanaldiyar.projects.nanohttpd.nanohttpd.Activator</Bundle-Activator>
                     </instructions>
                 </configuration>
             </plugin>
