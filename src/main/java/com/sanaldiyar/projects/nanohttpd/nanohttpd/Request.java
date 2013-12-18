@@ -5,7 +5,7 @@ Copryright © 2013 Kazım SARIKAYA
 This program is licensed under the terms of Sanal Diyar Software License. Please
 read the license file or visit http://license.sanaldiyar.com
 */
-package com.sanaldiyar.projects.nanohttpd;
+package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
 import java.io.Closeable;
 import java.io.File;
