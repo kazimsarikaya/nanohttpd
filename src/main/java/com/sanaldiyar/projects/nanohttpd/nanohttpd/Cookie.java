@@ -1,15 +1,17 @@
 /*
-Nano HTTPD HTTP Server
-Copryright © 2013 Kazım SARIKAYA
+ Nano HTTPD HTTP Server
+ Copryright © 2013 Kazım SARIKAYA
 
-This program is licensed under the terms of Sanal Diyar Software License. Please
-read the license file or visit http://license.sanaldiyar.com
-*/
+ This program is licensed under the terms of Sanal Diyar Software License. Please
+ read the license file or visit http://license.sanaldiyar.com
+ */
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -49,6 +51,10 @@ public class Cookie {
 
     public Cookie(String name, String value, String domain) {
         this(name, value, 365, TimeUnit.DAYS, domain, "/", true, true);
+    }
+
+    public Cookie(String name, String value) {
+        this(name, value, 365, TimeUnit.DAYS, null, "/", true, true);
     }
 
     public String getName() {
@@ -97,46 +103,14 @@ public class Cookie {
         return res;
     }
 
-    static Cookie parseCookie(String cookiestr) {
-        String name = null, value = null;
-        Date expires = null;
-        String domain = null, path = null;
-        boolean secure = false, httpOnly = false;
-        long duration = -1;
+    static List<Cookie> parseCookie(String cookiestr) {
         String[] cookieparts = cookiestr.split(";");
+        List<Cookie> cookies = new ArrayList<>();
         for (String cookiepart : cookieparts) {
             String cookieitempart[] = cookiepart.split("=");
-            switch (cookieitempart[0].trim().toLowerCase()) {
-                case "name":
-                    name = cookieitempart[1].trim();
-                    break;
-                case "value":
-                    value = cookieitempart[1].trim();
-                    break;
-                case "expires":
-                    SimpleDateFormat sdf = new SimpleDateFormat();
-                    try {
-                        expires = sdf.parse(cookieitempart[1].trim());
-                        Date now = new Date();
-                        duration = expires.getTime() - now.getTime();
-                    } catch (ParseException ex) {
-                    }
-                    break;
-                case "domain":
-                    domain = cookieitempart[1].trim();
-                    break;
-                case "path":
-                    path = cookieitempart[1].trim();
-                    break;
-                case "secure":
-                    secure = true;
-                    break;
-                case "httponly":
-                    httpOnly = true;
-                    break;
-            }
+            cookies.add(new Cookie(cookieitempart[0].trim(), cookieitempart[1].trim()));
         }
 
-        return new Cookie(name, value, duration, TimeUnit.MILLISECONDS, domain, path, secure, httpOnly);
+        return cookies;
     }
 }
