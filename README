@@ -14,6 +14,9 @@ bundle requires log4j slf4j and slf4j-log4j bridge bundles.
 While using inside osgi container, it listens service registrations with class
 name NanoHandler, and with VirtualHost property. 
 
+Session Support is provided by bundles that implements both session handler and
+manager. Only one session bundle can be active.
+
 The maven repository is:
 
 <repository>
