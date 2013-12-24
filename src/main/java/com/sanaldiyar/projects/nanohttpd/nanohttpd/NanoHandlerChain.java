@@ -1,10 +1,10 @@
 /*
-Nano HTTPD HTTP Server
-Copryright © 2013 Kazım SARIKAYA
+ Nano HTTPD HTTP Server
+ Copryright © 2013 Kazım SARIKAYA
 
-This program is licensed under the terms of Sanal Diyar Software License. Please
-read the license file or visit http://license.sanaldiyar.com
-*/
+ This program is licensed under the terms of Sanal Diyar Software License. Please
+ read the license file or visit http://license.sanaldiyar.com
+ */
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
 import java.io.PrintWriter;
@@ -16,11 +16,11 @@ import org.slf4j.LoggerFactory;
  *
  * @author kazim
  */
-public class NanoHandlerChain implements NanoHandler {
+public class NanoHandlerChain implements NanoHandler, NanoSession {
 
     private final Logger logger = LoggerFactory.getLogger(NanoHandlerChain.class);
 
-    private HashMap<String, NanoHandler> handlers = new HashMap<>();
+    private final HashMap<String, NanoHandler> handlers = new HashMap<>();
 
     private final NanoHandler defaultHandler = new NanoHandler() {
 
@@ -40,6 +40,8 @@ public class NanoHandlerChain implements NanoHandler {
         }
 
     };
+
+    private ThreadLocal<NanoSessionManager> nanoSessionManager = new InheritableThreadLocal<>();
 
     public boolean registerHandler(String virtualHost, NanoHandler handler) {
         if (!handlers.containsKey(virtualHost)) {
@@ -67,12 +69,20 @@ public class NanoHandlerChain implements NanoHandler {
         if (handlers.containsKey(virtualHost)) {
             logger.debug("a virtual host handler found");
             NanoHandler handler = handlers.get(virtualHost);
+            if (handler instanceof NanoSession) {
+                ((NanoSession) handler).setNanoSessionManager(nanoSessionManager.get());
+            }
             handler.handle(request, response);
             logger.debug("request handled");
             return;
         }
         logger.debug("redirected to default logger");
         defaultHandler.handle(request, response);
+    }
+
+    @Override
+    public synchronized void setNanoSessionManager(NanoSessionManager nanoSessionManager) {
+        this.nanoSessionManager.set(nanoSessionManager);
     }
 
 }

@@ -1,10 +1,10 @@
 /*
-Nano HTTPD HTTP Server
-Copryright © 2013 Kazım SARIKAYA
+ Nano HTTPD HTTP Server
+ Copryright © 2013 Kazım SARIKAYA
 
-This program is licensed under the terms of Sanal Diyar Software License. Please
-read the license file or visit http://license.sanaldiyar.com
-*/
+ This program is licensed under the terms of Sanal Diyar Software License. Please
+ read the license file or visit http://license.sanaldiyar.com
+ */
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
 import java.io.BufferedInputStream;
@@ -48,6 +48,7 @@ class NanoClient implements Runnable {
     private final int keepAliveTimeout;
     private final ExecutorService threadpool;
     private final int requestdatabuffer;
+    private final NanoSessionHandler nanoSessionHandler;
 
     /**
      * Internal Constructor.
@@ -59,15 +60,16 @@ class NanoClient implements Runnable {
      * @param threadpool the thread pool for creating threads
      * @param tempPath temporary folder for large request datas
      * @param requestdatabuffer the threshold for request data length to storing
-     * it inside temporary file
+     * @param nanoSessionHandler the session handler it inside temporary file
      */
-    NanoClient(SocketChannel clientSocketChannel, NanoHandler handler, int executionTimeout, int keepAliveTimeout, ExecutorService threadpool, int requestdatabuffer) {
+    NanoClient(SocketChannel clientSocketChannel, NanoHandler handler, int executionTimeout, int keepAliveTimeout, ExecutorService threadpool, int requestdatabuffer, NanoSessionHandler nanoSessionHandler) {
         this.clientSocketChannel = clientSocketChannel;
         this.handler = handler;
         this.executionTimeout = executionTimeout;
         this.keepAliveTimeout = keepAliveTimeout;
         this.threadpool = threadpool;
         this.requestdatabuffer = requestdatabuffer;
+        this.nanoSessionHandler = nanoSessionHandler;
     }
 
     /**
@@ -177,7 +179,7 @@ class NanoClient implements Runnable {
                     }
                     String[] headerparts = headerline.split(":", 2);
                     if (headerparts[0].trim().toLowerCase().equals("cookie")) {
-                        cookies.add(Cookie.parseCookie(headerparts[1].trim()));
+                        cookies.addAll(Cookie.parseCookie(headerparts[1].trim()));
                     } else {
                         headers.put(headerparts[0].trim(), headerparts[1].trim());
                     }
@@ -218,7 +220,7 @@ class NanoClient implements Runnable {
             buffer.put((respheader.getKey() + ": " + respheader.getValue() + "\r\n").getBytes("utf-8"));
         }
         for (Cookie cookie : response.getCookies()) {
-            buffer.put(("Set-Cookie: " + cookie.toString()).getBytes("utf-8"));
+            buffer.put(("Set-Cookie: " + cookie.toString() + "\r\n").getBytes("utf-8"));
         }
         buffer.put(("\r\n").getBytes("utf-8"));
         buffer.flip();
@@ -303,6 +305,11 @@ class NanoClient implements Runnable {
                 }
                 logger.debug("client (" + clientid + ") request parsed for path " + request.getPath());
 
+                NanoSessionManager nanoSessionManager = null;
+                if (nanoSessionHandler != null) {
+                    nanoSessionManager = nanoSessionHandler.parseRequest(request);
+                }
+
                 if (request.getHeaders().containsKey("Connection")) {
                     if (!request.getHeaders().get("Connection").equals("keep-alive")) {
                         clientSocketChannel.shutdownInput();
@@ -311,7 +318,12 @@ class NanoClient implements Runnable {
                     clientSocketChannel.shutdownInput();
                 }
 
+                if (handler instanceof NanoSession) {
+                    ((NanoSession) handler).setNanoSessionManager(nanoSessionManager);
+                }
+
                 final Response response = new Response(File.createTempFile("nanohttpd-", ".temp"));
+                response.setRequestURL(request.getPath());
                 Runnable handlerRunner = new Runnable() {
 
                     @Override
@@ -330,6 +342,10 @@ class NanoClient implements Runnable {
                     return;
                 }
                 request.close();
+
+                if (nanoSessionHandler != null) {
+                    nanoSessionHandler.parseResponse(nanoSessionManager, response);
+                }
 
                 parseResponse(response);
 

@@ -1,10 +1,10 @@
 /*
-Nano HTTPD HTTP Server
-Copryright © 2013 Kazım SARIKAYA
+ Nano HTTPD HTTP Server
+ Copryright © 2013 Kazım SARIKAYA
 
-This program is licensed under the terms of Sanal Diyar Software License. Please
-read the license file or visit http://license.sanaldiyar.com
-*/
+ This program is licensed under the terms of Sanal Diyar Software License. Please
+ read the license file or visit http://license.sanaldiyar.com
+ */
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
 import org.osgi.framework.BundleActivator;
@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author kazim
  */
-public class Activator implements BundleActivator, ServiceListener {
+public class Activator implements BundleActivator {
 
     private static final Logger logger = LoggerFactory.getLogger(Activator.class);
 
@@ -36,8 +36,10 @@ public class Activator implements BundleActivator, ServiceListener {
         nanoServer.setConfigurationFile("nanohttpd.conf");
 
         synchronized (handlerChain) {
-            this.context.addServiceListener(this, "(&(objectClass=" + NanoHandler.class.getName() + ")(VirtualHost=*))");
+            this.context.addServiceListener(new NanoHandlerServiceListener(), "(&(objectClass=" + NanoHandler.class.getName() + ")(VirtualHost=*))");
         }
+
+        this.context.addServiceListener(new NanoSessionHandlerServiceListener(), "(objectClass=" + NanoSessionHandler.class.getName() + ")");
 
         nanoServer.start();
     }
@@ -47,15 +49,32 @@ public class Activator implements BundleActivator, ServiceListener {
         nanoServer.stop();
     }
 
-    @Override
-    public void serviceChanged(ServiceEvent event) {
-        synchronized (handlerChain) {
-            String virtualHost = (String) event.getServiceReference().getProperty("VirtualHost");
+    private class NanoHandlerServiceListener implements ServiceListener {
+
+        @Override
+        public void serviceChanged(ServiceEvent event) {
+            synchronized (handlerChain) {
+                String virtualHost = (String) event.getServiceReference().getProperty("VirtualHost");
+                if (event.getType() == ServiceEvent.REGISTERED) {
+                    NanoHandler handler = (NanoHandler) context.getService(event.getServiceReference());
+                    handlerChain.registerHandler(virtualHost, handler);
+                } else if (event.getType() == ServiceEvent.UNREGISTERING) {
+                    handlerChain.removeHandler(virtualHost);
+                    context.ungetService(event.getServiceReference());
+                }
+            }
+        }
+    }
+
+    private class NanoSessionHandlerServiceListener implements ServiceListener {
+
+        @Override
+        public void serviceChanged(ServiceEvent event) {
             if (event.getType() == ServiceEvent.REGISTERED) {
-                NanoHandler handler = (NanoHandler) this.context.getService(event.getServiceReference());
-                handlerChain.registerHandler(virtualHost, handler);
+                NanoSessionHandler handler = (NanoSessionHandler) context.getService(event.getServiceReference());
+                nanoServer.setNanoSessionHandler(handler);
             } else if (event.getType() == ServiceEvent.UNREGISTERING) {
-                handlerChain.removeHandler(virtualHost);
+                nanoServer.setNanoSessionHandler(null);
                 context.ungetService(event.getServiceReference());
             }
         }

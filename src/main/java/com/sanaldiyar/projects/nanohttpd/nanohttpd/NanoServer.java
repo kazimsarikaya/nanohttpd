@@ -1,10 +1,10 @@
 /*
-Nano HTTPD HTTP Server
-Copryright © 2013 Kazım SARIKAYA
+ Nano HTTPD HTTP Server
+ Copryright © 2013 Kazım SARIKAYA
 
-This program is licensed under the terms of Sanal Diyar Software License. Please
-read the license file or visit http://license.sanaldiyar.com
-*/
+ This program is licensed under the terms of Sanal Diyar Software License. Please
+ read the license file or visit http://license.sanaldiyar.com
+ */
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
 import java.io.File;
@@ -44,6 +44,16 @@ public class NanoServer {
     private int keepAliveTimeout;
     private String tempPath;
     private int requestdatabuffer;
+    private NanoSessionHandler nanoSessionHandler = null;
+
+    /**
+     * Session Management Handler setter.
+     *
+     * @param nanoSessionHandler session handler
+     */
+    public void setNanoSessionHandler(NanoSessionHandler nanoSessionHandler) {
+        this.nanoSessionHandler = nanoSessionHandler;
+    }
 
     /**
      * Sets the NanoHandler instance.
@@ -156,7 +166,7 @@ public class NanoServer {
                         } catch (SocketTimeoutException ste) {
                             continue;
                         }
-                        Runnable clientRunnable = new NanoClient(clientSocketChannel, handler, executionTimeout, keepAliveTimeout, threadpool, requestdatabuffer);
+                        Runnable clientRunnable = new NanoClient(clientSocketChannel, handler, executionTimeout, keepAliveTimeout, threadpool, requestdatabuffer, nanoSessionHandler);
                         threadpool.execute(clientRunnable);
                     }
                     stopLock.release();

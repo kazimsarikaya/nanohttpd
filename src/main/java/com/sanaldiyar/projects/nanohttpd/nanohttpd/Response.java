@@ -1,22 +1,20 @@
 /*
-Nano HTTPD HTTP Server
-Copryright © 2013 Kazım SARIKAYA
+ Nano HTTPD HTTP Server
+ Copryright © 2013 Kazım SARIKAYA
 
-This program is licensed under the terms of Sanal Diyar Software License. Please
-read the license file or visit http://license.sanaldiyar.com
-*/
+ This program is licensed under the terms of Sanal Diyar Software License. Please
+ read the license file or visit http://license.sanaldiyar.com
+ */
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
-import java.nio.channels.Channel;
-import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
@@ -51,9 +49,10 @@ public class Response implements Closeable {
     private StatusCode statusCode = StatusCode.SC404;
     private final HashMap<String, String> headers = new HashMap<>();
     private final List<Cookie> cookies = new ArrayList<>();
-    private File tempfile;
-    private FileChannel channel;
+    private final File tempfile;
+    private final FileChannel channel;
     private int contentLength = 0;
+    private URI requestURL;
 
     Response(File tempfile) throws Exception {
         this.tempfile = tempfile;
@@ -72,8 +71,8 @@ public class Response implements Closeable {
     }
 
     /**
-     * Return HTTP Cookies.
-     * You can set response cookies adding to this list.
+     * Return HTTP Cookies. You can set response cookies adding to this list.
+     *
      * @return cookies
      */
     public List<Cookie> getCookies() {
@@ -208,6 +207,14 @@ public class Response implements Closeable {
     @Override
     public void close() throws IOException {
         tempfile.delete();
+    }
+
+    public URI getRequestURL() {
+        return requestURL;
+    }
+
+    void setRequestURL(URI requestURL) {
+        this.requestURL = requestURL;
     }
 
 }
