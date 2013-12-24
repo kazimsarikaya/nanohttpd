@@ -41,7 +41,7 @@ public class NanoHandlerChain implements NanoHandler, NanoSession {
 
     };
 
-    private ThreadLocal<NanoSessionManager> nanoSessionManager = new InheritableThreadLocal<>();
+    private final ThreadLocal<NanoSessionManager> nanoSessionManager = new InheritableThreadLocal<>();
 
     public boolean registerHandler(String virtualHost, NanoHandler handler) {
         if (!handlers.containsKey(virtualHost)) {

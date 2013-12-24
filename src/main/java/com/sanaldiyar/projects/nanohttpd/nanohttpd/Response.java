@@ -209,10 +209,18 @@ public class Response implements Closeable {
         tempfile.delete();
     }
 
+    /**
+     * returns the information which url the response belongs to.
+     * @return the url
+     */
     public URI getRequestURL() {
         return requestURL;
     }
 
+    /**
+     * Sets request url
+     * @param requestURL the request URL 
+     */
     void setRequestURL(URI requestURL) {
         this.requestURL = requestURL;
     }

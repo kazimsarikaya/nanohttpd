@@ -49,6 +49,9 @@ public class Activator implements BundleActivator {
         nanoServer.stop();
     }
 
+    /**
+     * Listens registration of nanohandler's
+     */
     private class NanoHandlerServiceListener implements ServiceListener {
 
         @Override
@@ -66,6 +69,9 @@ public class Activator implements BundleActivator {
         }
     }
 
+    /**
+     * Listens registration of nanosessionhandler's
+     */
     private class NanoSessionHandlerServiceListener implements ServiceListener {
 
         @Override

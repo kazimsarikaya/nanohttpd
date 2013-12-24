@@ -15,7 +15,11 @@ While using inside osgi container, it listens service registrations with class
 name NanoHandler, and with VirtualHost property. 
 
 Session Support is provided by bundles that implements both session handler and
-manager. Only one session bundle can be active.
+manager. Only one session bundle can be active. For using session support, the 
+class which implements nanohandler should be implement nanosession. NanoSession
+interface provides a setter of session manager which system provides. If the
+system do not have any session management bundle, the setter method will have
+its parameter null.
 
 The maven repository is:
 
