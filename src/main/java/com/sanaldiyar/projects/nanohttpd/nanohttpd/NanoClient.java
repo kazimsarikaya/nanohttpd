@@ -295,6 +295,10 @@ class NanoClient implements Runnable {
                 } catch (TimeoutException ex) {
                     tmpRequest = null;
                 }
+
+                String vhost = tmpRequest.getPath().getHost() + "." + tmpRequest.getPath().getPort();
+                MDC.put("vhost", vhost);
+
                 final Request request = tmpRequest;
                 if (request == null) {
                     if (clientSocketChannel.isConnected()) {
