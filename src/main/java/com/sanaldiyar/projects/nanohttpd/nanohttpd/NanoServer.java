@@ -22,8 +22,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,16 +117,13 @@ public class NanoServer {
 
             @Override
             public void run() {
-                PropertyConfigurator.configure(NanoServer.class.getResource("/logging.properties"));
                 logger.info("Sanal Diyar Nano HTTPD version 0.1");
                 try {
                     Properties config = new Properties();
                     FileInputStream configFile;
                     configFile = new FileInputStream(configurationFile);
                     config.load(configFile);
-                    configFile = new FileInputStream(configurationFile);
-                    PropertyConfigurator.configure(configFile);
-                    logger.debug("New logging configuration loaded");
+                    
                     executionTimeout = Integer.parseInt(config.getProperty("execution.timeout"));
                     keepAliveTimeout = Integer.parseInt(config.getProperty("connection.keepalivetimeout"));
 

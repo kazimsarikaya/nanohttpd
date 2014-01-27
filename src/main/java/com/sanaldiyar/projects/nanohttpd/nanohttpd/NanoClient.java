@@ -29,6 +29,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 /**
  * Internal class for each client. The clinet is executed for every connection.
@@ -147,6 +148,7 @@ class NanoClient implements Runnable {
                         isheadersparsed = true;
                         if (headers.containsKey("Host")) {
                             String host = headers.get("Host");
+                            MDC.put("vhost", host.replace(":", "."));
                             pathURI = new URI("http://" + host + path);
                         }
                         logger.debug("client (" + clientid + ") headers parsed");
