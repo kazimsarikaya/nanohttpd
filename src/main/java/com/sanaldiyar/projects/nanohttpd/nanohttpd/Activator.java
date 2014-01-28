@@ -97,8 +97,10 @@ public class Activator implements BundleActivator {
             if (event.getType() == ServiceEvent.REGISTERED) {
                 NanoSessionHandler handler = (NanoSessionHandler) context.getService(event.getServiceReference());
                 nanoServer.setNanoSessionHandler(handler);
+                handlerChain.setNanoSessionHandler(handler);
             } else if (event.getType() == ServiceEvent.UNREGISTERING) {
                 nanoServer.setNanoSessionHandler(null);
+                handlerChain.setNanoSessionHandler(null);
                 context.ungetService(event.getServiceReference());
             }
         }

@@ -16,11 +16,13 @@ import org.slf4j.LoggerFactory;
  *
  * @author kazim
  */
-public class NanoHandlerChain implements NanoHandler, NanoSession {
+public class NanoHandlerChain implements NanoHandler {
 
     private final Logger logger = LoggerFactory.getLogger(NanoHandlerChain.class);
 
     private final HashMap<String, NanoHandler> handlers = new HashMap<>();
+
+    private NanoSessionHandler nanoSessionHandler;
 
     private final NanoHandler defaultHandler = new NanoHandler() {
 
@@ -40,8 +42,6 @@ public class NanoHandlerChain implements NanoHandler, NanoSession {
         }
 
     };
-
-    private final ThreadLocal<NanoSessionManager> nanoSessionManager = new InheritableThreadLocal<>();
 
     public boolean registerHandler(String virtualHost, NanoHandler handler) {
         if (!handlers.containsKey(virtualHost)) {
@@ -70,7 +70,14 @@ public class NanoHandlerChain implements NanoHandler, NanoSession {
             logger.debug("a virtual host handler found");
             NanoHandler handler = handlers.get(virtualHost);
             if (handler instanceof NanoSession) {
-                ((NanoSession) handler).setNanoSessionManager(nanoSessionManager.get());
+                NanoSessionManager nanoSessionManager = null;
+                if (nanoSessionHandler != null) {
+                    nanoSessionManager = nanoSessionHandler.parseRequest(request);
+                }
+                ((NanoSession) handler).setNanoSessionManager(nanoSessionManager);
+                if (nanoSessionHandler != null) {
+                    nanoSessionHandler.parseResponse(nanoSessionManager, response);
+                }
             }
             handler.handle(request, response);
             logger.debug("request handled");
@@ -80,9 +87,8 @@ public class NanoHandlerChain implements NanoHandler, NanoSession {
         defaultHandler.handle(request, response);
     }
 
-    @Override
-    public synchronized void setNanoSessionManager(NanoSessionManager nanoSessionManager) {
-        this.nanoSessionManager.set(nanoSessionManager);
+    public void setNanoSessionHandler(NanoSessionHandler nanoSessionHandler) {
+        this.nanoSessionHandler = nanoSessionHandler;
     }
 
 }

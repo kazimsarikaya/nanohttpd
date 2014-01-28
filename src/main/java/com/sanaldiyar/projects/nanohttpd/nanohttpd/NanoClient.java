@@ -292,12 +292,9 @@ class NanoClient implements Runnable {
                 Request tmpRequest;
                 try {
                     tmpRequest = requestSubmit.get(keepAliveTimeout, TimeUnit.SECONDS);
-                } catch (TimeoutException ex) {
+                } catch (Exception ex) {
                     tmpRequest = null;
                 }
-
-                String vhost = tmpRequest.getPath().getHost() + "." + tmpRequest.getPath().getPort();
-                MDC.put("vhost", vhost);
 
                 final Request request = tmpRequest;
                 if (request == null) {
@@ -311,10 +308,8 @@ class NanoClient implements Runnable {
                 }
                 logger.debug("client (" + clientid + ") request parsed for path " + request.getPath());
 
-                NanoSessionManager nanoSessionManager = null;
-                if (nanoSessionHandler != null) {
-                    nanoSessionManager = nanoSessionHandler.parseRequest(request);
-                }
+                String vhost = tmpRequest.getPath().getHost() + "." + tmpRequest.getPath().getPort();
+                MDC.put("vhost", vhost);
 
                 if (request.getHeaders().containsKey("Connection")) {
                     if (!request.getHeaders().get("Connection").equals("keep-alive")) {
@@ -324,7 +319,12 @@ class NanoClient implements Runnable {
                     clientSocketChannel.shutdownInput();
                 }
 
+                NanoSessionManager nanoSessionManager = null;
+
                 if (handler instanceof NanoSession) {
+                    if (nanoSessionHandler != null) {
+                        nanoSessionManager = nanoSessionHandler.parseRequest(request);
+                    }
                     ((NanoSession) handler).setNanoSessionManager(nanoSessionManager);
                 }
 
@@ -349,8 +349,10 @@ class NanoClient implements Runnable {
                 }
                 request.close();
 
-                if (nanoSessionHandler != null) {
-                    nanoSessionHandler.parseResponse(nanoSessionManager, response);
+                if (handler instanceof NanoSession) {
+                    if (nanoSessionHandler != null) {
+                        nanoSessionHandler.parseResponse(nanoSessionManager, response);
+                    }
                 }
 
                 parseResponse(response);
@@ -387,4 +389,9 @@ class NanoClient implements Runnable {
             }
         }
     }
+
+    NanoSessionHandler getNanoSessionHandler() {
+        return nanoSessionHandler;
+    }
+
 }
