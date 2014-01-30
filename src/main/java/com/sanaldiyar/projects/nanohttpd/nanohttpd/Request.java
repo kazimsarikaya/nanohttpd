@@ -18,6 +18,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,6 +146,25 @@ public class Request implements Closeable {
                 } else if (ct.startsWith(ContentType.MULTIPARTFORMDATA.toString()) || ct.startsWith(ContentType.MULTIPARTMIXED.toString())) {
                     List<FormDataPart> formdataparts = parseMultiPartBlocks(ct, 0, requestData.limit());
                     parseMultiParts(formdataparts, lang);
+                } else if (ct.startsWith(ContentType.APPLICATIONJSON.toString())) {
+                    String tct = ct.trim();
+                    String cs = "utf-8";
+                    if (tct.indexOf(";") != -1) {
+                        String[] tmp = tct.split(";", 2);
+                        if (tmp[1].trim().startsWith("charset=")) {
+                            cs = tmp[1].trim().replace("charset=", "").trim();
+                        }
+                    }
+                    String jsondata = "";
+                    try {
+                        jsondata = new String(requestData.array(), cs);
+                    } catch (UnsupportedEncodingException ex) {
+                        try {
+                            jsondata = new String(requestData.array(), "utf-8");
+                        } catch (UnsupportedEncodingException ex1) {
+                        }
+                    }
+                    this.parameters.put("jsondata", jsondata);
                 }
 
             }
