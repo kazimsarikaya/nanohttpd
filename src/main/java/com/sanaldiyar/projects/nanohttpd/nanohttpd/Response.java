@@ -35,12 +35,18 @@ public class Response implements Closeable {
         @Override
         public void write(int b) throws IOException {
             if (position == 8192) {
+                mbb = null;
                 mbb = channel.map(FileChannel.MapMode.READ_WRITE, contentLength, 8192);
                 position = 0;
             }
             mbb.put((byte) (b & 0xFF));
             contentLength++;
             position++;
+        }
+
+        @Override
+        public void close() throws IOException {
+            mbb = null;
         }
 
     }
@@ -120,6 +126,7 @@ public class Response implements Closeable {
             map.get(data);
             socketChannel.write(ByteBuffer.wrap(data));
         }
+        map = null;
     }
 
     /**
@@ -206,11 +213,14 @@ public class Response implements Closeable {
 
     @Override
     public void close() throws IOException {
+        responseStream.close();
+        channel.close();
         tempfile.delete();
     }
 
     /**
      * returns the information which url the response belongs to.
+     *
      * @return the url
      */
     public URI getRequestURL() {
@@ -219,7 +229,8 @@ public class Response implements Closeable {
 
     /**
      * Sets request url
-     * @param requestURL the request URL 
+     *
+     * @param requestURL the request URL
      */
     void setRequestURL(URI requestURL) {
         this.requestURL = requestURL;

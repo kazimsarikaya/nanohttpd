@@ -9,7 +9,9 @@ import java.nio.channels.SocketChannel;
 import java.util.Objects;
 
 /**
- *
+ * Client Context.
+ * Using for managing request response and related datas between threads.
+ * 
  * @author kazim
  */
 public class ClientContext {

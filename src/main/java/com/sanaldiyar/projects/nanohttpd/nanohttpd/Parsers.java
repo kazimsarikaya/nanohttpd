@@ -23,7 +23,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 /**
- *
+ * Shared request response parser class
+ * 
  * @author kazim
  */
 public final class Parsers {
@@ -54,6 +55,8 @@ public final class Parsers {
         String method = "";
         URI pathURI = null;
         File tempfile = null;
+        FileChannel channel = null;
+
         while ((rsize = clientContext.getSocketChannel().read(buffer)) > 0) {
             buffer.flip();
             byte[] data = buffer.array();
@@ -67,7 +70,8 @@ public final class Parsers {
                         } else {
                             tempfile = File.createTempFile("nanohttpd-", ".temp");
                             RandomAccessFile raf = new RandomAccessFile(tempfile, "rw");
-                            reqdbuf = raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, contentlength);
+                            channel = raf.getChannel();
+                            reqdbuf = channel.map(FileChannel.MapMode.READ_WRITE, 0, contentlength);
                         }
                         reqdbuf.clear();
                         isrequestdatabufferstarted = true;
@@ -76,6 +80,9 @@ public final class Parsers {
                     readedrequestdatalen += bis.read(tmpbd);
                     reqdbuf = reqdbuf.put(tmpbd);
                     if (contentlength == readedrequestdatalen) {
+                        if (channel != null) {
+                            channel.close();
+                        }
                         clientContext.setRequest(new Request(reqdbuf, headers, pathURI, method, tempfile, cookies));
                         return;
                     }

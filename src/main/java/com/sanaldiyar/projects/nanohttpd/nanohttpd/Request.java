@@ -1,10 +1,10 @@
 /*
-Nano HTTPD HTTP Server
-Copryright © 2013 Kazım SARIKAYA
+ Nano HTTPD HTTP Server
+ Copryright © 2013 Kazım SARIKAYA
 
-This program is licensed under the terms of Sanal Diyar Software License. Please
-read the license file or visit http://license.sanaldiyar.com
-*/
+ This program is licensed under the terms of Sanal Diyar Software License. Please
+ read the license file or visit http://license.sanaldiyar.com
+ */
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
 import java.io.Closeable;
@@ -36,6 +36,7 @@ public class Request implements Closeable {
      */
     @Override
     public void close() throws IOException {
+        this.requestData = null;
         if (tempFile != null) {
             tempFile.delete();
         }
@@ -88,7 +89,7 @@ public class Request implements Closeable {
 
     }
 
-    private final ByteBuffer requestData;
+    private ByteBuffer requestData;
     private final HashMap<String, String> headers;
     private final URI path;
     private final String method;
@@ -394,8 +395,8 @@ public class Request implements Closeable {
     }
 
     /**
-     * Returns cookies.
-     * Returns the cookies send by client.
+     * Returns cookies. Returns the cookies send by client.
+     *
      * @return cookies
      */
     public List<Cookie> getCookies() {

@@ -18,13 +18,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 /**
- * Internal class for each client. The clinet is executed for every connection.
+ * Internal class for each client.
  * If keep-alive requested client continue performing operations, otherwise
  * client closed. However the client also have lifetime timeout whenever
  * keep-alive is set
@@ -36,6 +35,7 @@ class NanoClient implements Runnable, Comparable<NanoClient> {
     private final static Logger logger = LoggerFactory.getLogger(NanoClient.class);
     private final List<ClientContext> clientContexts;
     private final Selector selector;
+    private final Object selector_lock = new Object();
 
     /**
      * Internal Constructor.
@@ -53,11 +53,18 @@ class NanoClient implements Runnable, Comparable<NanoClient> {
         return this.clientContexts.size() - o.clientContexts.size();
     }
 
+    /**
+     * adds a new connection to the client stub.
+     * 
+     * @param clientContext client context
+     */
     public void addClientContext(ClientContext clientContext) {
         try {
             clientContext.getSocketChannel().configureBlocking(false);
-            selector.wakeup();
-            clientContext.getSocketChannel().register(selector, SelectionKey.OP_READ, clientContext);
+            synchronized (selector_lock) {
+                selector.wakeup();
+                clientContext.getSocketChannel().register(selector, SelectionKey.OP_READ, clientContext);
+            }
             logger.info("new client (" + clientContext.getClientId() + ") at: " + clientContext.getSocketChannel().getRemoteAddress().toString());
             clientContexts.add(clientContext);
         } catch (IOException ex) {
@@ -74,6 +81,8 @@ class NanoClient implements Runnable, Comparable<NanoClient> {
         while (NanoServer.createOrGetInstance().isServe()) {
 
             try {
+                synchronized (selector_lock) {
+                }
                 int nofk = selector.select(500);
                 if (nofk == 0 && NanoServer.createOrGetInstance().isServe()) {
                     continue;
@@ -173,8 +182,10 @@ class NanoClient implements Runnable, Comparable<NanoClient> {
                         clientContext.setRequest(null);
 
                         clientContext.setRequesthandled(true);
-                        selector.wakeup();
-                        clientContext.getSocketChannel().register(selector, SelectionKey.OP_WRITE, clientContext);
+                        synchronized (selector_lock) {
+                            selector.wakeup();
+                            clientContext.getSocketChannel().register(selector, SelectionKey.OP_WRITE, clientContext);
+                        }
                     } else if (key.isWritable() && clientContext.isRequesthandled()) {
                         if (NanoServer.createOrGetInstance().getHandler() instanceof NanoSession) {
                             if (NanoServer.createOrGetInstance().getNanoSessionHandler() != null) {
@@ -203,8 +214,10 @@ class NanoClient implements Runnable, Comparable<NanoClient> {
                             clientContexts.remove(clientContext);
                             logger.debug("client (" + clientContext.getClientId() + ") is ended");
                         } else {
-                            selector.wakeup();
-                            clientContext.getSocketChannel().register(selector, SelectionKey.OP_READ, clientContext);
+                            synchronized (selector_lock) {
+                                selector.wakeup();
+                                clientContext.getSocketChannel().register(selector, SelectionKey.OP_READ, clientContext);
+                            }
                         }
 
                     } else if (key.isWritable() && !clientContext.isRequesthandled()) {
