@@ -49,7 +49,7 @@ public class Activator implements BundleActivator {
 
         configureLogging("nanohttpd.conf");
 
-        nanoServer = new NanoServer();
+        nanoServer = NanoServer.createOrGetInstance();
         nanoServer.setHandler(handlerChain);
         nanoServer.setConfigurationFile("nanohttpd.conf");
 

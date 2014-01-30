@@ -11,15 +11,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -47,6 +44,41 @@ public class NanoServer {
     private String tempPath;
     private int requestdatabuffer;
     private NanoSessionHandler nanoSessionHandler = null;
+    private static final AtomicInteger clientIndex = new AtomicInteger(0);
+
+    private static NanoServer instance = null;
+
+    private NanoServer() {
+
+    }
+
+    public static NanoServer createOrGetInstance() {
+        if (instance == null) {
+            instance = new NanoServer();
+        }
+
+        return instance;
+    }
+
+    public int getRequestDataBuffer() {
+        return requestdatabuffer;
+    }
+
+    public int getKeepAliveTimeout() {
+        return keepAliveTimeout;
+    }
+
+    public int getExecutionTimeout() {
+        return executionTimeout;
+    }
+
+    public ExecutorService getThreadpool() {
+        return threadpool;
+    }
+
+    public NanoSessionHandler getNanoSessionHandler() {
+        return nanoSessionHandler;
+    }
 
     /**
      * Session Management Handler setter.
@@ -177,8 +209,8 @@ public class NanoServer {
                             if (key.isAcceptable()) {
                                 ServerSocketChannel tmp = (ServerSocketChannel) key.channel();
                                 SocketChannel clientSocketChannel = tmp.accept();
-
-                                Runnable clientRunnable = new NanoClient(clientSocketChannel, handler, executionTimeout, keepAliveTimeout, threadpool, requestdatabuffer, nanoSessionHandler);
+                                ClientContext clientContext = new ClientContext(clientSocketChannel, clientIndex.getAndIncrement());
+                                Runnable clientRunnable = new NanoClient(clientContext, handler);
                                 threadpool.execute(clientRunnable);
 
                             }
