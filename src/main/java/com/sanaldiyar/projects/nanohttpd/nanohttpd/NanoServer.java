@@ -13,9 +13,13 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Iterator;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -123,7 +127,7 @@ public class NanoServer {
                     FileInputStream configFile;
                     configFile = new FileInputStream(configurationFile);
                     config.load(configFile);
-                    
+
                     executionTimeout = Integer.parseInt(config.getProperty("execution.timeout"));
                     keepAliveTimeout = Integer.parseInt(config.getProperty("connection.keepalivetimeout"));
 
@@ -137,8 +141,11 @@ public class NanoServer {
 
                     int port = Integer.parseInt(config.getProperty("server.port"));
                     ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-                    serverSocketChannel.socket().setSoTimeout(500);
+                    //serverSocketChannel.socket().setSoTimeout(500);
                     serverSocketChannel.bind(new InetSocketAddress(port));
+                    Selector serverSelector = Selector.open();
+                    serverSocketChannel.configureBlocking(false);
+                    serverSocketChannel.register(serverSelector, SelectionKey.OP_ACCEPT);
                     logger.info("The server started on the port: " + port);
 
                     int threadpoolsize = Integer.parseInt(config.getProperty("server.threadpoolsize"));
@@ -154,15 +161,31 @@ public class NanoServer {
 
                     stopLock.acquire();
                     while (serve) {
-                        SocketChannel clientSocketChannel;
-                        try {
-                            Socket clientSocket = serverSocketChannel.socket().accept();
-                            clientSocketChannel = clientSocket.getChannel();
-                        } catch (SocketTimeoutException ste) {
+
+                        int numofc = serverSelector.select(15 * 1000);
+                        if (numofc == 0 && serve) {
                             continue;
                         }
-                        Runnable clientRunnable = new NanoClient(clientSocketChannel, handler, executionTimeout, keepAliveTimeout, threadpool, requestdatabuffer, nanoSessionHandler);
-                        threadpool.execute(clientRunnable);
+                        if (!serve) {
+                            stopLock.release();
+                            return;
+                        }
+                        Iterator<SelectionKey> keys = serverSelector.selectedKeys().iterator();
+                        while (keys.hasNext()) {
+                            SelectionKey key = keys.next();
+
+                            if (key.isAcceptable()) {
+                                ServerSocketChannel tmp = (ServerSocketChannel) key.channel();
+                                SocketChannel clientSocketChannel = tmp.accept();
+
+                                Runnable clientRunnable = new NanoClient(clientSocketChannel, handler, executionTimeout, keepAliveTimeout, threadpool, requestdatabuffer, nanoSessionHandler);
+                                threadpool.execute(clientRunnable);
+
+                            }
+
+                            keys.remove();
+                        }
+
                     }
                     stopLock.release();
                 } catch (InterruptedException | IOException | NumberFormatException ex) {
