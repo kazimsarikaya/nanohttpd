@@ -127,11 +127,7 @@ public final class Parsers {
                         requestline = headerline;
                         String[] rlparts = requestline.split(" ");
                         if (!rlparts[2].trim().equals("HTTP/1.1")) {
-                            buffer.clear();
-                            buffer.put((rlparts[2] + " " + StatusCode.SC505.toString() + "\r\n").getBytes());
-                            buffer.flip();
-                            clientContext.getSocketChannel().write(buffer);
-                            clientContext.getSocketChannel().close();
+                            clientContext.setStatusCode(StatusCode.SC505);
                             clientContext.setRequest(null);
                             return;
                         }
@@ -154,7 +150,7 @@ public final class Parsers {
             data = reqdbuf.array();
         }
         if (rsize == -1 && data == null && headers.isEmpty() && pathURI == null && method.trim().isEmpty()) {
-            sendError(clientContext, StatusCode.SC400);
+            clientContext.setStatusCode(StatusCode.SC400);
             clientContext.setRequest(null);
             return;
         }
@@ -208,14 +204,13 @@ public final class Parsers {
      * Sends HTTP errors to clients
      *
      * @param clientContext client contect
-     * @param sc Error status code
      * @throws Exception Exception if there is error at client socket
      */
-    public static void sendError(ClientContext clientContext, StatusCode sc) throws Exception {
+    public static void sendError(ClientContext clientContext) throws Exception {
         ByteBuffer buffer = ByteBuffer.allocate(8192);
-        byte[] data = sc.toString().getBytes("utf-8");
+        byte[] data = clientContext.getStatusCode().toString().getBytes("utf-8");
         int responselength = data.length;
-        buffer.put(("HTTP/1.1 " + sc.toString() + "\r\n").getBytes("utf-8"));
+        buffer.put(("HTTP/1.1 " + clientContext.getStatusCode().toString() + "\r\n").getBytes("utf-8"));
         buffer.put(("Content-Length: " + responselength + "\r\n").getBytes("utf-8"));
         buffer.put(("Content-Type: text/plain; charset=utf-8\r\n").getBytes("utf-8"));
         buffer.put(("\r\n").getBytes("utf-8"));

@@ -1,10 +1,10 @@
 /*
-Nano HTTPD HTTP Server
-Copryright © 2013 Kazım SARIKAYA
+ Nano HTTPD HTTP Server
+ Copryright © 2013 Kazım SARIKAYA
 
-This program is licensed under the terms of Sanal Diyar Software License. Please
-read the license file or visit http://license.sanaldiyar.com
-*/
+ This program is licensed under the terms of Sanal Diyar Software License. Please
+ read the license file or visit http://license.sanaldiyar.com
+ */
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
 /**
@@ -14,6 +14,7 @@ package com.sanaldiyar.projects.nanohttpd.nanohttpd;
  */
 public enum StatusCode {
 
+    SCNONE(0, "None"),
     SC100(100, "Continue"),
     SC101(101, "Switching Protocols"),
     SC200(200, "OK"),

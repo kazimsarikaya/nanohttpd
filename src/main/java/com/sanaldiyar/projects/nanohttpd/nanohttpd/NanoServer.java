@@ -16,6 +16,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
+import java.util.PriorityQueue;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,6 +24,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +80,10 @@ public class NanoServer {
 
     public NanoSessionHandler getNanoSessionHandler() {
         return nanoSessionHandler;
+    }
+
+    public boolean isServe() {
+        return serve;
     }
 
     /**
@@ -180,7 +186,8 @@ public class NanoServer {
                     serverSocketChannel.register(serverSelector, SelectionKey.OP_ACCEPT);
                     logger.info("The server started on the port: " + port);
 
-                    int threadpoolsize = Integer.parseInt(config.getProperty("server.threadpoolsize"));
+                    int threadpoolsize = Integer.parseInt(config.getProperty("server.threadpool.size"));
+                    int threadpoolacceptors = Integer.parseInt(config.getProperty("server.threadpool.acceptors"));
                     threadpool = Executors.newFixedThreadPool(threadpoolsize, new ThreadFactory() {
                         private final AtomicInteger count = new AtomicInteger(0);
 
@@ -190,6 +197,18 @@ public class NanoServer {
                         }
                     });
                     logger.info("The server threadpool created with size: " + threadpoolsize);
+
+                    PriorityQueue<NanoClient> nanoClients = new PriorityQueue<>();
+                    for (int i = 0; i < threadpoolacceptors; i++) {
+                        NanoClient nanoClient;
+                        try {
+                            nanoClient = new NanoClient();
+                            threadpool.execute(nanoClient);
+                            nanoClients.offer(nanoClient);
+                        } catch (Exception ex) {
+                            logger.error("can not create nano client", ex);
+                        }
+                    }
 
                     stopLock.acquire();
                     while (serve) {
@@ -210,9 +229,9 @@ public class NanoServer {
                                 ServerSocketChannel tmp = (ServerSocketChannel) key.channel();
                                 SocketChannel clientSocketChannel = tmp.accept();
                                 ClientContext clientContext = new ClientContext(clientSocketChannel, clientIndex.getAndIncrement());
-                                Runnable clientRunnable = new NanoClient(clientContext, handler);
-                                threadpool.execute(clientRunnable);
-
+                                NanoClient nanoClient = nanoClients.poll();
+                                nanoClient.addClientContext(clientContext);
+                                nanoClients.offer(nanoClient);
                             }
 
                             keys.remove();
