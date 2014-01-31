@@ -6,14 +6,14 @@
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
 /**
- * The session manager interface.
- * The session management bundle should have at least one implementation of
- * this class.
+ * The session manager interface. The session management bundle should have at
+ * least one implementation of this class.
+ *
  * @author kazim
  */
 public interface NanoSessionManager {
 
-    public Object get(String key);
+    public <T> T get(String key, Class<T> clazz);
 
     public void set(String key, Object value);
 
