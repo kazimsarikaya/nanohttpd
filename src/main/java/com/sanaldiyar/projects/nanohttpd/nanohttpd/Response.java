@@ -109,7 +109,7 @@ public class Response implements Closeable {
      * @return content length
      */
     int getContentLength() {
-        return contentLength - 1;
+        return contentLength;
     }
 
     /**
@@ -119,7 +119,7 @@ public class Response implements Closeable {
      * @throws IOException error at sending data
      */
     void sendToSocketChannel(SocketChannel socketChannel) throws IOException {
-        MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_ONLY, 0, contentLength - 1);
+        MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_ONLY, 0, contentLength);
         while (map.position() < map.limit()) {
             int len = map.remaining() > 8192 ? 8192 : map.remaining();
             byte[] data = new byte[len];

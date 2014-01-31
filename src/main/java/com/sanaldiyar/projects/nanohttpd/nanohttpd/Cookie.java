@@ -7,6 +7,7 @@
  */
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,12 +15,13 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * HTTP Cookie class.
+ *
  * @author kazim
  */
 public class Cookie {
 
     private final String name, value;
-    private final Date expires;
+    private final long maxAge;
     private final String domain, path;
     private final boolean secure, httpOnly;
 
@@ -27,7 +29,7 @@ public class Cookie {
 
         this.name = name;
         this.value = value;
-        this.expires = new Date(new Date().getTime() + timeunit.toMillis(duration));
+        this.maxAge = timeunit.toSeconds(duration);
         this.domain = domain;
         this.path = path;
         this.secure = secure;
@@ -79,13 +81,13 @@ public class Cookie {
         return httpOnly;
     }
 
-    public Date getExpires() {
-        return expires;
+    public long getMaxAge() {
+        return maxAge;
     }
 
     @Override
     public String toString() {
-        String res = name + "=" + value + "; Expires=" + expires.toString();
+        String res = name + "=" + value + "; Max-Age=" + maxAge;
         if (path != null) {
             res += "; Path=" + path;
         }
