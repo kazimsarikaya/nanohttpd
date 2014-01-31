@@ -69,17 +69,19 @@ public class NanoHandlerChain implements NanoHandler {
         if (handlers.containsKey(virtualHost)) {
             logger.debug("a virtual host handler found");
             NanoHandler handler = handlers.get(virtualHost);
+            NanoSessionManager nanoSessionManager = null;
             if (handler instanceof NanoSession) {
-                NanoSessionManager nanoSessionManager = null;
                 if (nanoSessionHandler != null) {
                     nanoSessionManager = nanoSessionHandler.parseRequest(request);
                 }
                 ((NanoSession) handler).setNanoSessionManager(nanoSessionManager);
+            }
+            handler.handle(request, response);
+            if (handler instanceof NanoSession) {
                 if (nanoSessionHandler != null) {
                     nanoSessionHandler.parseResponse(nanoSessionManager, response);
                 }
             }
-            handler.handle(request, response);
             logger.debug("request handled");
             return;
         }
