@@ -15,10 +15,10 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +40,9 @@ public class Request implements Closeable {
         this.requestData = null;
         if (tempFile != null) {
             tempFile.delete();
+        }
+        if (uploadFileChannel != null) {
+            uploadFileChannel.close();
         }
     }
 
@@ -97,6 +100,7 @@ public class Request implements Closeable {
     private final HashMap<String, Object> parameters = new HashMap<>();
     private final File tempFile;
     private final List<Cookie> cookies;
+    private final FileChannel uploadFileChannel;
 
     /**
      * Internal constructor
@@ -107,13 +111,14 @@ public class Request implements Closeable {
      * @param method the request method
      * @param tempFile the temp file for storing large request data.
      */
-    Request(ByteBuffer requestData, HashMap<String, String> headers, URI path, String method, File tempFile, List<Cookie> cookies) {
+    Request(ByteBuffer requestData, HashMap<String, String> headers, URI path, String method, File tempFile, List<Cookie> cookies, FileChannel uploadFileChannel) {
         this.requestData = requestData;
         this.headers = headers;
         this.path = path;
         this.method = method;
         this.tempFile = tempFile;
         this.cookies = cookies;
+        this.uploadFileChannel = uploadFileChannel;
         init();
     }
 

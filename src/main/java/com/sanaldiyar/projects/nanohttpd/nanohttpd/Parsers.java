@@ -24,7 +24,7 @@ import org.slf4j.MDC;
 
 /**
  * Shared request response parser class
- * 
+ *
  * @author kazim
  */
 public final class Parsers {
@@ -80,10 +80,7 @@ public final class Parsers {
                     readedrequestdatalen += bis.read(tmpbd);
                     reqdbuf = reqdbuf.put(tmpbd);
                     if (contentlength == readedrequestdatalen) {
-                        if (channel != null) {
-                            channel.close();
-                        }
-                        clientContext.setRequest(new Request(reqdbuf, headers, pathURI, method, tempfile, cookies));
+                        clientContext.setRequest(new Request(reqdbuf, headers, pathURI, method, tempfile, cookies, channel));
                         return;
                     }
                 } else {
@@ -120,11 +117,11 @@ public final class Parsers {
                             if (headers.containsKey("Content-Length")) {
                                 contentlength = Integer.parseInt(headers.get("Content-Length"));
                                 if (contentlength == 0) {
-                                    clientContext.setRequest(new Request(null, headers, pathURI, method, null, cookies));
+                                    clientContext.setRequest(new Request(null, headers, pathURI, method, null, cookies, null));
                                     return;
                                 }
                             } else {
-                                clientContext.setRequest(new Request(null, headers, pathURI, method, null, cookies));
+                                clientContext.setRequest(new Request(null, headers, pathURI, method, null, cookies, null));
                                 return;
                             }
                         }
@@ -161,7 +158,7 @@ public final class Parsers {
             clientContext.setRequest(null);
             return;
         }
-        clientContext.setRequest(new Request(null, headers, pathURI, method, null, cookies));
+        clientContext.setRequest(new Request(null, headers, pathURI, method, null, cookies, null));
     }
 
     /**
