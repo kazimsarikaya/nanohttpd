@@ -204,6 +204,21 @@ public class Response implements Closeable {
             case "mpeg":
                 ct = ContentType.VIDEOMPEG.toString();
                 break;
+            case "svg":
+                ct = ContentType.FONTSVG.toString();
+                break;
+            case "ttf":
+                ct = ContentType.FONTTTF.toString();
+                break;
+            case "otf":
+                ct = ContentType.FONTOTF.toString();
+                break;
+            case "woff":
+                ct = ContentType.FONTWOFF.toString();
+                break;
+            case "eot":
+                ct = ContentType.FONTEOT.toString();
+                break;
             default:
                 ct = ContentType.APPLICATIONOCTETSTREAM.toString();
                 break;

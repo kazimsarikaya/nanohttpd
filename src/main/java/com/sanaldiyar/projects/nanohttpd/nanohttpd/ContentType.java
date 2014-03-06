@@ -1,10 +1,10 @@
 /*
-Nano HTTPD HTTP Server
-Copryright © 2013 Kazım SARIKAYA
+ Nano HTTPD HTTP Server
+ Copryright © 2013 Kazım SARIKAYA
 
-This program is licensed under the terms of Sanal Diyar Software License. Please
-read the license file or visit http://license.sanaldiyar.com
-*/
+ This program is licensed under the terms of Sanal Diyar Software License. Please
+ read the license file or visit http://license.sanaldiyar.com
+ */
 package com.sanaldiyar.projects.nanohttpd.nanohttpd;
 
 /**
@@ -52,7 +52,13 @@ public enum ContentType {
     TEXTXML("text/xml"),
     /* video types */
     VIDEOMP4("video/mp4"),
-    VIDEOMPEG("video/mpeg"),;
+    VIDEOMPEG("video/mpeg"),
+    /* font types */
+    FONTSVG("image/svg+xml"),
+    FONTTTF("application/x-font-ttf"),
+    FONTOTF("application/x-font-opentype"),
+    FONTWOFF("application/font-woff"),
+    FONTEOT("application/vnd.ms-fontobject"),;
 
     final private String contentType;
 
